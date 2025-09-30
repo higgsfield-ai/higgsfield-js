@@ -30,6 +30,11 @@ export interface GenerateParams {
   [key: string]: any;
 }
 
+export interface WebhookPayload {
+  url: string;
+  secret: string;
+}
+
 export interface UploadResponse {
   upload_url: string;
   public_url: string;

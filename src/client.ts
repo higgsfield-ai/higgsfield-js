@@ -3,7 +3,7 @@ import FormData from 'form-data';
 import { Config, ClientConfig } from './config';
 import { fetchCredentials, Credentials } from './auth';
 import { APIError, AuthenticationError } from './errors';
-import { GenerateParams, UploadResponse } from './types';
+import { GenerateParams, UploadResponse, WebhookPayload } from './types';
 import { JobSet } from './models/JobSet';
 import { retryWithBackoff } from './utils/retry';
 
@@ -59,10 +59,20 @@ export class HiggsfieldClient {
   async generate(
     endpoint: string,
     params: GenerateParams,
-    withPolling: boolean = true
+    options?: {
+      webhook?: WebhookPayload;
+      withPolling?: boolean;
+    }
   ): Promise<JobSet> {
+    const requestBody: any = { params };
+    
+    // Only include webhook if provided
+    if (options?.webhook) {
+      requestBody.webhook = options.webhook;
+    }
+
     const response = await retryWithBackoff(
-      () => this.client.post(endpoint, { params }),
+      () => this.client.post(endpoint, requestBody),
       {
         maxRetries: this.config.maxRetries,
         backoff: this.config.retryBackoff,
@@ -72,6 +82,7 @@ export class HiggsfieldClient {
 
     const jobSet = new JobSet(response.data);
     
+    const withPolling = options?.withPolling ?? true;
     if (withPolling) {
       await jobSet.poll(this.client, this.config);
     }
@@ -80,9 +91,9 @@ export class HiggsfieldClient {
   }
 
   /**
-   * Get upload link for file uploads
+   * Get upload link for file uploads (internal method)
    */
-  async getUploadLink(contentType: string): Promise<UploadResponse> {
+  private async getUploadLink(contentType: string): Promise<UploadResponse> {
     const response = await this.client.post('/files/generate-upload-url', {
       content_type: contentType
     });
@@ -114,6 +125,38 @@ export class HiggsfieldClient {
     format: 'jpeg' | 'png' | 'webp' = 'jpeg'
   ): Promise<string> {
     return this.upload(imageBuffer, `image/${format}`);
+  }
+
+  /**
+   * Get available motions for image-to-video generation
+   */
+  async getMotions(): Promise<any[]> {
+    const response = await retryWithBackoff(
+      () => this.client.get('/v1/motions'),
+      {
+        maxRetries: this.config.maxRetries,
+        backoff: this.config.retryBackoff,
+        maxBackoff: this.config.retryMaxBackoff
+      }
+    );
+    
+    return response.data;
+  }
+
+  /**
+   * Get available Soul styles for text-to-image generation
+   */
+  async getSoulStyles(): Promise<any[]> {
+    const response = await retryWithBackoff(
+      () => this.client.get('/v1/text2image/soul-styles'),
+      {
+        maxRetries: this.config.maxRetries,
+        backoff: this.config.retryBackoff,
+        maxBackoff: this.config.retryMaxBackoff
+      }
+    );
+    
+    return response.data;
   }
 
   /**

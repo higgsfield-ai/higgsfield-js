@@ -8,3 +8,8 @@ yarn-error.log
 /coverage
 .DS_Store
 *.local
+
+# Example files - do not commit
+examples/
+*.example.ts
+*.example.js
