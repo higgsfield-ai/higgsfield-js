@@ -65,18 +65,17 @@ export function inputMotion(motionId: string, inputStrength: number = 1.0) {
     }
 }
 
-type Quality = '720p' | '1080p'
-
 /**
- * Validates and returns a Soul quality setting
- * @param quality - The quality setting ('720p' or '1080p')
- * @returns The validated quality string
+ * Quality options for Soul text-to-image generation
  * @example
- * const quality = soulQuality('1080p');
+ * quality: SoulQuality.HD // 1080p quality
  */
-export function soulQuality(quality: Quality): string {
-    return quality
-}
+export const SoulQuality = {
+    /** 720p quality */
+    SD: '720p',
+    /** 1080p quality */
+    HD: '1080p'
+} as const;
 
 /**
  * Batch size options for Soul image generation
@@ -149,9 +148,9 @@ export const DoPModel = {
 /**
  * Quality options for Speak speech-to-video generation
  * @example
- * quality: SpeakQuality.HIGH // Best quality output
+ * quality: SpeakVideoQuality.HIGH // Best quality output
  */
-export const SpeakQuality = {
+export const SpeakVideoQuality = {
     /** Medium quality - faster generation */
     MID: 'mid',
     /** High quality - best results */

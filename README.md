@@ -12,7 +12,7 @@ npm install @higgsfield/client
 
 ```typescript
 import { HiggsfieldClient } from '@higgsfield/client';
-import { InputImage, InputAudio, inputMotion, soulQuality, SoulSize, BatchSize, DoPModel, SpeakQuality, SpeakDuration, webhook, strength, seed } from '@higgsfield/client/helpers';
+import { InputImage, InputAudio, inputMotion, SoulQuality, SoulSize, BatchSize, DoPModel, SpeakVideoQuality, SpeakDuration, webhook, strength, seed } from '@higgsfield/client/helpers';
 
 // Initialize the client
 const client = new HiggsfieldClient({
@@ -163,7 +163,7 @@ const jobSet = await client.generate('/v1/speak/higgsfield', {
   input_image: InputImage.fromUrl('https://example.com/avatar.jpg'),
   input_audio: InputAudio.fromUrl('https://example.com/speech.wav'), // Only WAV files supported
   prompt: 'Professional presentation style',
-  quality: SpeakQuality.MID, // Options: SpeakQuality.MID or SpeakQuality.HIGH
+  quality: SpeakVideoQuality.MID, // Options: SpeakVideoQuality.MID or SpeakVideoQuality.HIGH
   duration: SpeakDuration.SHORT, // Options: SpeakDuration.SHORT (5s), MEDIUM (10s), or LONG (15s)
   seed: seed() // Random seed for varied results
 });
@@ -185,7 +185,7 @@ Generate artistic images from text descriptions using the Soul model.
 const jobSet = await client.generate('/v1/text2image/soul', {
   prompt: 'A majestic mountain landscape at sunset, oil painting style',
   width_and_height: SoulSize.SQUARE_1536x1536, // See SoulSize for all 13 available sizes
-  quality: soulQuality('720p'), // Options: '480p', '720p', '1080p'
+  quality: SoulQuality.SD, // Options: SoulQuality.SD (720p) or SoulQuality.HD (1080p)
   batch_size: BatchSize.SINGLE, // Options: BatchSize.SINGLE (1) or BatchSize.QUAD (4)
   enhance_prompt: true // AI-enhanced prompt optimization
 });
@@ -225,7 +225,7 @@ const jobSet = await client.generate('/v1/text2image/soul', {
   style_id: oilPaintingStyle.id, // Use style from getSoulStyles()
   style_strength: strength(0.8), // Style intensity (0.0 to 1.0)
   width_and_height: SoulSize.PORTRAIT_1536x2048,
-  quality: soulQuality('1080p'),
+  quality: SoulQuality.HD,
   batch_size: BatchSize.QUAD,
   enhance_prompt: false,
   seed: seed(12345) // For reproducible results
@@ -246,7 +246,7 @@ jobSet.jobs.forEach((job, index) => {
 const jobSet = await client.generate('/v1/text2image/soul', {
   prompt: 'Futuristic city with flying cars, cyberpunk aesthetic',
   width_and_height: SoulSize.LANDSCAPE_2048x1152, // Landscape format
-  quality: soulQuality('1080p'),
+  quality: SoulQuality.HD,
   batch_size: BatchSize.QUAD,
   style_id: 'cyberpunk-style-uuid', // From getSoulStyles()
   style_strength: strength(0.9),
@@ -333,7 +333,7 @@ import {
 try {
   const jobSet = await client.generate('/v1/text2image/soul', {
     prompt: 'A beautiful landscape',
-    quality: soulQuality('1080p'),
+    quality: SoulQuality.HD,
     width_and_height: SoulSize.LANDSCAPE_2048x1152,
     batch_size: BatchSize.SINGLE
   });

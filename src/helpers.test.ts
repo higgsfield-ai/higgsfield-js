@@ -2,11 +2,11 @@ import {
   InputImage,
   InputAudio,
   inputMotion,
-  soulQuality,
+  SoulQuality,
   SoulSize,
   BatchSize,
   DoPModel,
-  SpeakQuality,
+  SpeakVideoQuality,
   SpeakDuration,
   webhook,
   strength,
@@ -83,10 +83,10 @@ describe('Helper Functions', () => {
     });
   });
 
-  describe('soulQuality', () => {
-    it('should return valid quality strings', () => {
-      expect(soulQuality('720p')).toBe('720p');
-      expect(soulQuality('1080p')).toBe('1080p');
+  describe('SoulQuality', () => {
+    it('should have correct quality values', () => {
+      expect(SoulQuality.SD).toBe('720p');
+      expect(SoulQuality.HD).toBe('1080p');
     });
   });
 
@@ -165,9 +165,9 @@ describe('Helper Functions', () => {
       expect(DoPModel.STANDARD).toBe('dop-standard');
     });
 
-    it('should have correct SpeakQuality values', () => {
-      expect(SpeakQuality.MID).toBe('mid');
-      expect(SpeakQuality.HIGH).toBe('high');
+    it('should have correct SpeakVideoQuality values', () => {
+      expect(SpeakVideoQuality.MID).toBe('mid');
+      expect(SpeakVideoQuality.HIGH).toBe('high');
     });
 
     it('should have correct SpeakDuration values', () => {
