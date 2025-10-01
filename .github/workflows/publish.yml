@@ -18,15 +18,6 @@ jobs:
       - run: npm test
       - run: npm run build
       
-      # Update version without triggering git scripts
-      - name: Set version from tag
-        run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          npm --no-git-tag-version version $VERSION --allow-same-version
-        env:
-          npm_config_version: ''
-          npm_config_postversion: ''
-      
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
