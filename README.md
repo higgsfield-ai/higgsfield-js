@@ -319,17 +319,25 @@ for (const job of jobSet.jobs) {
 
 ### Error Handling
 
+The SDK provides comprehensive error handling with specific error types for different scenarios:
+
 ```typescript
+import { 
+  AuthenticationError, 
+  BadInputError, 
+  ValidationError, 
+  NotEnoughCreditsError, 
+  APIError 
+} from '@higgsfield/client';
+
 try {
-  const jobSet = await client.generate('/v1/image2video/dop', {
-    model: DoPModel.TURBO,
-    prompt: 'Dynamic camera movement',
-    input_images: [InputImage.fromUrl('https://example.com/image.jpg')],
-    motions: [inputMotion('motion-uuid', 0.8)]
+  const jobSet = await client.generate('/v1/text2image/soul', {
+    prompt: 'A beautiful landscape',
+    quality: soulQuality('1080p'),
+    width_and_height: SoulSize.LANDSCAPE_2048x1152,
+    batch_size: BatchSize.SINGLE
   });
 
-  // The generate method polls automatically by default
-  
   // Check for specific job failures
   for (const job of jobSet.jobs) {
     switch (job.status) {
@@ -347,13 +355,50 @@ try {
         break;
     }
   }
+
 } catch (error) {
-  if (error.name === 'AuthenticationError') {
-    console.error('Invalid API credentials');
-  } else if (error.name === 'APIError') {
-    console.error('API Error:', error.statusCode, error.data);
+  // Handle specific error types
+  if (error instanceof AuthenticationError) {
+    console.error('❌ Authentication failed - check your API credentials');
+    
+  } else if (error instanceof NotEnoughCreditsError) {
+    console.error('💳 Insufficient credits - please top up your account');
+    
+  } else if (error instanceof BadInputError) {
+    console.error('📋 Invalid input parameters:');
+    console.error('Message:', error.message);
+  
+  } else if (error instanceof ValidationError) {
+    console.error('⚠️  Validation error:');
+    console.error('Message:', error.message);
+    
+  } else if (error instanceof APIError) {
+    console.error('🌐 API Error:');
+    console.error('Status:', error.statusCode);
+    console.error('Message:', error.message);
+    console.error('Response:', error.responseData);
+    
   } else {
-    console.error('Unexpected error:', error);
+    console.error('💥 Unexpected error:', error);
+  }
+}
+```
+
+#### Helper Function Validation Errors
+
+Helper functions also throw `BadInputError` for invalid inputs:
+
+```typescript
+try {
+  // These will throw BadInputError with descriptive messages
+  const invalidStrength = strength(1.5); // Error: Strength must be between 0 and 1
+  const invalidSeed = seed(-1); // Error: Seed must be an integer between 0 and 1,000,000
+  const emptyImage = InputImage.fromUrl(''); // Error: Image URL must be a non-empty string
+  const emptyMotion = inputMotion('', 0.5); // Error: Motion ID must be a non-empty string
+  
+} catch (error) {
+  if (error instanceof BadInputError) {
+    console.error('Invalid helper input:', error.message);
   }
 }
 ```
