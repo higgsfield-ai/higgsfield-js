@@ -160,14 +160,12 @@ Generate videos with talking avatars from audio input. **Note: Only WAV audio fi
 // Generate talking avatar video from audio and image
 // Note: Audio must be in WAV format
 const jobSet = await client.generate('/v1/speak/higgsfield', {
-  params: {
-    input_image: InputImage.fromUrl('https://example.com/avatar.jpg'),
-    input_audio: InputAudio.fromUrl('https://example.com/speech.wav'), // Only WAV files supported
-    prompt: 'Professional presentation style',
-    quality: SpeakQuality.MID, // Options: SpeakQuality.MID or SpeakQuality.HIGH
-    duration: SpeakDuration.SHORT, // Options: SpeakDuration.SHORT (5s), MEDIUM (10s), or LONG (15s)
-    seed: seed() // Random seed for varied results
-  }
+  input_image: InputImage.fromUrl('https://example.com/avatar.jpg'),
+  input_audio: InputAudio.fromUrl('https://example.com/speech.wav'), // Only WAV files supported
+  prompt: 'Professional presentation style',
+  quality: SpeakQuality.MID, // Options: SpeakQuality.MID or SpeakQuality.HIGH
+  duration: SpeakDuration.SHORT, // Options: SpeakDuration.SHORT (5s), MEDIUM (10s), or LONG (15s)
+  seed: seed() // Random seed for varied results
 });
 
 // Check results
@@ -223,16 +221,14 @@ Then use a style in your generation:
 ```typescript
 // Generate with specific style
 const jobSet = await client.generate('/v1/text2image/soul', {
-  params: {
-    prompt: 'Portrait of a wise elderly person',
-    style_id: oilPaintingStyle.id, // Use style from getSoulStyles()
-    style_strength: strength(0.8), // Style intensity (0.0 to 1.0)
-    width_and_height: SoulSize.PORTRAIT_1536x2048,
-    quality: soulQuality('1080p'),
-    batch_size: BatchSize.QUAD,
-    enhance_prompt: false,
-    seed: seed(12345) // For reproducible results
-  }
+  prompt: 'Portrait of a wise elderly person',
+  style_id: oilPaintingStyle.id, // Use style from getSoulStyles()
+  style_strength: strength(0.8), // Style intensity (0.0 to 1.0)
+  width_and_height: SoulSize.PORTRAIT_1536x2048,
+  quality: soulQuality('1080p'),
+  batch_size: BatchSize.QUAD,
+  enhance_prompt: false,
+  seed: seed(12345) // For reproducible results
 });
 
 // Get all generated images
@@ -248,19 +244,18 @@ jobSet.jobs.forEach((job, index) => {
 ```typescript
 // Generate with advanced parameters and character consistency
 const jobSet = await client.generate('/v1/text2image/soul', {
-  params: {
-    prompt: 'Futuristic city with flying cars, cyberpunk aesthetic',
-    width_and_height: SoulSize.LANDSCAPE_2048x1152, // Landscape format
-    quality: soulQuality('1080p'),
-    batch_size: BatchSize.QUAD,
-    style_id: 'cyberpunk-style-uuid', // From getSoulStyles()
-    style_strength: strength(0.9),
-    custom_reference_id: 'character-uuid', // Character from custom references
-    custom_reference_strength: strength(0.7),
-    image_reference: InputImage.fromUrl('https://example.com/reference.jpg'),
-    enhance_prompt: true,
-    seed: seed(999) // Fixed seed for consistency
-  },
+  prompt: 'Futuristic city with flying cars, cyberpunk aesthetic',
+  width_and_height: SoulSize.LANDSCAPE_2048x1152, // Landscape format
+  quality: soulQuality('1080p'),
+  batch_size: BatchSize.QUAD,
+  style_id: 'cyberpunk-style-uuid', // From getSoulStyles()
+  style_strength: strength(0.9),
+  custom_reference_id: 'character-uuid', // Character from custom references
+  custom_reference_strength: strength(0.7),
+  image_reference: InputImage.fromUrl('https://example.com/reference.jpg'),
+  enhance_prompt: true,
+  seed: seed(999) // Fixed seed for consistency
+}, {
   webhook: webhook('https://your-webhook-url.com/callback', 'your-webhook-secret')
 });
 
@@ -327,12 +322,10 @@ for (const job of jobSet.jobs) {
 ```typescript
 try {
   const jobSet = await client.generate('/v1/image2video/dop', {
-    params: {
-      model: DoPModel.TURBO,
-      prompt: 'Dynamic camera movement',
-      input_images: [InputImage.fromUrl('https://example.com/image.jpg')],
-      motions: [inputMotion('motion-uuid', 0.8)]
-    }
+    model: DoPModel.TURBO,
+    prompt: 'Dynamic camera movement',
+    input_images: [InputImage.fromUrl('https://example.com/image.jpg')],
+    motions: [inputMotion('motion-uuid', 0.8)]
   });
 
   // The generate method polls automatically by default
