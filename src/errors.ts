@@ -37,3 +37,66 @@ export class TimeoutError extends HiggsfieldError {
     this.name = 'TimeoutError';
   }
 }
+
+export class NotEnoughCreditsError extends APIError {
+  statusCode: number = 403
+
+  constructor() {
+    super('Not enough credits');
+    this.name = 'AccountError';
+  }
+}
+
+interface ValidationErrorDetail {
+  type: string;
+  loc: string[];
+  msg: string;
+  input?: any;
+  ctx?: Record<string, any>;
+}
+
+export class ValidationError extends APIError {
+  statusCode: number = 422
+  details?: ValidationErrorDetail[];
+
+  constructor(detail: string | ValidationErrorDetail[] | undefined) {
+    let message: string;
+    let details: ValidationErrorDetail[] | undefined;
+    
+    if (Array.isArray(detail)) {
+      details = detail;
+      message = detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+    } else if (typeof detail === 'string') {
+      message = detail;
+    } else {
+      message = 'Check your input params';
+    }
+    
+    super(message);
+    this.name = 'ValidationError';
+    this.details = details;
+  }
+}
+
+export class BadInputError extends APIError {
+  statusCode: number = 400
+  details?: ValidationErrorDetail[];
+
+  constructor(detail: string | ValidationErrorDetail[] | undefined) {
+    let message: string;
+    let details: ValidationErrorDetail[] | undefined;
+    
+    if (Array.isArray(detail)) {
+      details = detail;
+      message = detail.map(err => `${err.loc.join('.')}: ${err.msg}`).join(', ');
+    } else if (typeof detail === 'string') {
+      message = detail;
+    } else {
+      message = 'Check your input params';
+    }
+    
+    super(message);
+    this.name = 'BadInputError';
+    this.details = details;
+  }
+}

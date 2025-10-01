@@ -1,9 +1,8 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
-import FormData from 'form-data';
 import { Config, ClientConfig } from './config';
 import { fetchCredentials, Credentials } from './auth';
-import { APIError, AuthenticationError } from './errors';
-import { GenerateParams, UploadResponse, WebhookPayload } from './types';
+import { APIError, AuthenticationError, BadInputError, NotEnoughCreditsError, ValidationError } from './errors';
+import { GenerateParams, UploadResponse, WebhookPayload, SoulStyle, Motion } from './types';
 import { JobSet } from './models/JobSet';
 import { retryWithBackoff } from './utils/retry';
 
@@ -37,9 +36,21 @@ export class HiggsfieldClient {
 
     this.client.interceptors.response.use(
       response => response,
-      (error: AxiosError) => {
+      (error: AxiosError<{ detail?: string | Array<{
+        type: string;
+        loc: string[];
+        msg: string;
+        input?: any;
+        ctx?: Record<string, any>;
+      }> }>) => {
         if (error.response?.status === 401) {
           throw new AuthenticationError('Invalid API credentials');
+        } else if(error.response?.status === 403) {
+          throw new NotEnoughCreditsError
+        } else if(error.response?.status === 422) {
+          throw new ValidationError(error.response?.data?.detail)
+        } else if(error.response?.status === 400) {
+          throw new BadInputError(error.response?.data?.detail)
         }
         if (error.response) {
           throw new APIError(
@@ -129,10 +140,11 @@ export class HiggsfieldClient {
 
   /**
    * Get available motions for image-to-video generation
+   * @returns Array of available Motion objects with id, name, description, and preview_url
    */
-  async getMotions(): Promise<any[]> {
+  async getMotions(): Promise<Motion[]> {
     const response = await retryWithBackoff(
-      () => this.client.get('/v1/motions'),
+      () => this.client.get<Motion[]>('/v1/motions'),
       {
         maxRetries: this.config.maxRetries,
         backoff: this.config.retryBackoff,
@@ -145,10 +157,11 @@ export class HiggsfieldClient {
 
   /**
    * Get available Soul styles for text-to-image generation
+   * @returns Array of available SoulStyle objects with id, name, description, and preview_url
    */
-  async getSoulStyles(): Promise<any[]> {
+  async getSoulStyles(): Promise<SoulStyle[]> {
     const response = await retryWithBackoff(
-      () => this.client.get('/v1/text2image/soul-styles'),
+      () => this.client.get<SoulStyle[]>('/v1/text2image/soul-styles'),
       {
         maxRetries: this.config.maxRetries,
         backoff: this.config.retryBackoff,

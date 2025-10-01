@@ -12,6 +12,7 @@ npm install @higgsfield/client
 
 ```typescript
 import { HiggsfieldClient } from '@higgsfield/client';
+import { InputImage, InputAudio, inputMotion, soulQuality, SoulSize, BatchSize, DoPModel, SpeakQuality, SpeakDuration, webhook, strength, seed } from '@higgsfield/client/helpers';
 
 // Initialize the client
 const client = new HiggsfieldClient({
@@ -57,12 +58,9 @@ Generate 5-second videos from static images using the DoP (Director of Photograp
 ```typescript
 // Generate video from image (no motion applied)
 const jobSet = await client.generate('/v1/image2video/dop', {
-  model: 'dop-turbo', // Options: 'dop-lite', 'dop-preview', 'dop-turbo'
+  model: DoPModel.TURBO, // Options: DoPModel.LITE, DoPModel.STANDARD, DoPModel.TURBO
   prompt: 'Cinematic camera movement around the subject',
-  input_images: [{
-    type: 'image_url',
-    image_url: 'https://example.com/image.jpg'
-  }]
+  input_images: [InputImage.fromUrl('https://example.com/image.jpg')]
 });
 
 // The generate method automatically polls for completion by default
@@ -77,16 +75,16 @@ if (jobSet.isCompleted) {
 First, fetch available motions:
 
 ```typescript
-// Get available motions
-const motions = await client.getMotions();
+// Get available motions (returns Motion[])
+const motions: Motion[] = await client.getMotions();
 
-// Example motion object structure:
+// Motion type structure:
 // {
-//   id: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
-//   name: 'Zoom In',
-//   description: 'Smooth zoom into the subject',
-//   preview_url: 'https://example.com/preview.mp4',
-//   start_end_frame: true
+//   id: string;
+//   name: string;
+//   description?: string;
+//   preview_url?: string;
+//   start_end_frame?: boolean;
 // }
 
 // Find a specific motion
@@ -100,16 +98,12 @@ Then use a motion in your generation:
 ```typescript
 // Generate video with specific motion
 const jobSet = await client.generate('/v1/image2video/dop', {
-  model: 'dop-turbo',
+  model: DoPModel.TURBO,
   prompt: 'Apply zoom motion to the subject',
-  input_images: [{
-    type: 'image_url',
-    image_url: 'https://example.com/image.jpg'
-  }],
-  motions: [{
-    id: zoomMotion.id, // Motion UUID from getMotions()
-    strength: 0.8 // Motion strength (0.0 to 1.0)
-  }]
+  input_images: [InputImage.fromUrl('https://example.com/image.jpg')],
+  motions: [
+    inputMotion(zoomMotion.id, 0.8) // Motion UUID from getMotions() with strength (0.0 to 1.0)
+  ]
 });
 
 // Check completion status
@@ -132,29 +126,17 @@ const imageUrl = await client.uploadImage(imageBuffer, 'jpeg');
 
 // Generate video with multiple motions and webhook
 const jobSet = await client.generate('/v1/image2video/dop', {
-  model: 'dop-preview', // Highest quality model
+  model: DoPModel.STANDARD, // Highest quality model
   prompt: 'Cinematic dolly zoom with dramatic lighting',
-  input_images: [{
-    type: 'image_url',
-    image_url: imageUrl
-  }],
+  input_images: [InputImage.fromUrl(imageUrl)],
   motions: [
-    {
-      id: 'motion-uuid-1',
-      strength: 0.7
-    },
-    {
-      id: 'motion-uuid-2', 
-      strength: 0.5
-    }
+    inputMotion('motion-uuid-1', 0.7),
+    inputMotion('motion-uuid-2', 0.5)
   ], // Can have up to 2 motions
-  seed: 42, // For reproducible results
+  seed: seed(42), // For reproducible results
   enhance_prompt: true // AI-enhanced prompt
 }, {
-  webhook: {
-    url: 'https://your-webhook-url.com/callback',
-    secret: 'your-webhook-secret'
-  }
+  webhook: webhook('https://your-webhook-url.com/callback', 'your-webhook-secret')
 });
 
 // Handle results (polling happens automatically)
@@ -179,17 +161,12 @@ Generate videos with talking avatars from audio input. **Note: Only WAV audio fi
 // Note: Audio must be in WAV format
 const jobSet = await client.generate('/v1/speak/higgsfield', {
   params: {
-    input_image: {
-      type: 'image_url',
-      image_url: 'https://example.com/avatar.jpg'
-    },
-    input_audio: {
-      type: 'audio_url',
-      audio_url: 'https://example.com/speech.wav' // Only WAV files supported
-    },
+    input_image: InputImage.fromUrl('https://example.com/avatar.jpg'),
+    input_audio: InputAudio.fromUrl('https://example.com/speech.wav'), // Only WAV files supported
     prompt: 'Professional presentation style',
-    quality: 'mid', // Options: 'mid' or 'high'
-    duration: 5 // Options: 5, 10, or 15 seconds
+    quality: SpeakQuality.MID, // Options: SpeakQuality.MID or SpeakQuality.HIGH
+    duration: SpeakDuration.SHORT, // Options: SpeakDuration.SHORT (5s), MEDIUM (10s), or LONG (15s)
+    seed: seed() // Random seed for varied results
   }
 });
 
@@ -209,9 +186,9 @@ Generate artistic images from text descriptions using the Soul model.
 // Generate image from text
 const jobSet = await client.generate('/v1/text2image/soul', {
   prompt: 'A majestic mountain landscape at sunset, oil painting style',
-  width_and_height: '1536x1536', // Available: '1152x2048', '2048x1152', '2048x1536', '1536x2048', '1344x2016', '2016x1344', '960x1696', '1536x1536', '1536x1152', '1696x960', '1152x1536', '1088x1632', '1632x1088'
-  quality: '720p', // Options: '720p', '1080p'
-  batch_size: 1, // Options: 1 or 4
+  width_and_height: SoulSize.SQUARE_1536x1536, // See SoulSize for all 13 available sizes
+  quality: soulQuality('720p'), // Options: '480p', '720p', '1080p'
+  batch_size: BatchSize.SINGLE, // Options: BatchSize.SINGLE (1) or BatchSize.QUAD (4)
   enhance_prompt: true // AI-enhanced prompt optimization
 });
 
@@ -226,15 +203,15 @@ if (jobSet.isCompleted) {
 First, fetch available styles:
 
 ```typescript
-// Get available Soul styles
-const styles = await client.getSoulStyles();
+// Get available Soul styles (returns SoulStyle[])
+const styles: SoulStyle[] = await client.getSoulStyles();
 
-// Example style object:
+// SoulStyle type structure:
 // {
-//   id: '1cb4b936-77bf-4f9a-9039-f3d349a4cdbe',
-//   name: 'Oil Painting',
-//   description: 'Classical oil painting style',
-//   category: 'artistic'
+//   id: string;
+//   name: string;
+//   description: string;
+//   preview_url: string;
 // }
 
 // Find a specific style
@@ -249,12 +226,12 @@ const jobSet = await client.generate('/v1/text2image/soul', {
   params: {
     prompt: 'Portrait of a wise elderly person',
     style_id: oilPaintingStyle.id, // Use style from getSoulStyles()
-    style_strength: 0.8, // Style intensity (0.0 to 1.0)
-    width_and_height: '1536x2048',
-    quality: '1080p',
-    batch_size: 4,
+    style_strength: strength(0.8), // Style intensity (0.0 to 1.0)
+    width_and_height: SoulSize.PORTRAIT_1536x2048,
+    quality: soulQuality('1080p'),
+    batch_size: BatchSize.QUAD,
     enhance_prompt: false,
-    seed: 12345 // For reproducible results
+    seed: seed(12345) // For reproducible results
   }
 });
 
@@ -273,24 +250,18 @@ jobSet.jobs.forEach((job, index) => {
 const jobSet = await client.generate('/v1/text2image/soul', {
   params: {
     prompt: 'Futuristic city with flying cars, cyberpunk aesthetic',
-    width_and_height: '2048x1152', // Landscape format
-    quality: '1080p',
-    batch_size: 4,
+    width_and_height: SoulSize.LANDSCAPE_2048x1152, // Landscape format
+    quality: soulQuality('1080p'),
+    batch_size: BatchSize.QUAD,
     style_id: 'cyberpunk-style-uuid', // From getSoulStyles()
-    style_strength: 0.9,
+    style_strength: strength(0.9),
     custom_reference_id: 'character-uuid', // Character from custom references
-    custom_reference_strength: 0.7,
-    image_reference: {
-      type: 'image_url',
-      image_url: 'https://example.com/reference.jpg'
-    },
+    custom_reference_strength: strength(0.7),
+    image_reference: InputImage.fromUrl('https://example.com/reference.jpg'),
     enhance_prompt: true,
-    seed: 999
+    seed: seed(999) // Fixed seed for consistency
   },
-  webhook: {
-    url: 'https://your-webhook-url.com/callback',
-    secret: 'your-webhook-secret'
-  }
+  webhook: webhook('https://your-webhook-url.com/callback', 'your-webhook-secret')
 });
 
 // Download generated images
@@ -312,8 +283,8 @@ for (const job of jobSet.jobs) {
 ### Core Methods
 
 - `generate(endpoint: string, params: object, options?: { webhook?: WebhookPayload, withPolling?: boolean }): Promise<JobSet>` - Generate content using any Higgsfield API endpoint
-- `getMotions(): Promise<any[]>` - Get available motions for image-to-video generation
-- `getSoulStyles(): Promise<any[]>` - Get available Soul styles for text-to-image generation
+- `getMotions(): Promise<Motion[]>` - Get available motions for image-to-video generation
+- `getSoulStyles(): Promise<SoulStyle[]>` - Get available Soul styles for text-to-image generation
 - `uploadImage(imageBuffer: Buffer, format?: 'jpeg' | 'png' | 'webp'): Promise<string>` - Upload an image and get its URL
 - `upload(data: Buffer | Uint8Array, contentType: string): Promise<string>` - Upload any data with specific content type
 
@@ -357,16 +328,10 @@ for (const job of jobSet.jobs) {
 try {
   const jobSet = await client.generate('/v1/image2video/dop', {
     params: {
-      model: 'dop-turbo',
+      model: DoPModel.TURBO,
       prompt: 'Dynamic camera movement',
-      input_images: [{
-        type: 'image_url',
-        image_url: 'https://example.com/image.jpg'
-      }],
-      motions: [{
-        id: 'motion-uuid',
-        strength: 0.8
-      }]
+      input_images: [InputImage.fromUrl('https://example.com/image.jpg')],
+      motions: [inputMotion('motion-uuid', 0.8)]
     }
   });
 
@@ -439,7 +404,9 @@ import {
   JobStatus,
   JobSet,
   Job,
-  GenerateParams
+  GenerateParams,
+  SoulStyle,
+  Motion
 } from '@higgsfield/client';
 
 // All parameters are fully typed

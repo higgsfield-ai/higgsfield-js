@@ -39,3 +39,18 @@ export interface UploadResponse {
   upload_url: string;
   public_url: string;
 }
+
+export interface SoulStyle {
+  id: string;
+  name: string;
+  description: string;
+  preview_url: string;
+}
+
+export interface Motion {
+  id: string;
+  name: string;
+  description?: string;
+  preview_url?: string;
+  start_end_frame?: boolean;
+}
