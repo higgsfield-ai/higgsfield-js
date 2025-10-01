@@ -17,7 +17,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      
+
+      - name: Set version from tag
+        run: npm version ${{ github.ref_name }} --no-git-tag-version
+        
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
