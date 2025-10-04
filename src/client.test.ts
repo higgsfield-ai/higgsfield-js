@@ -6,6 +6,8 @@ import {
   NotEnoughCreditsError, 
   APIError 
 } from './errors';
+import { SoulIdStatus, InputImageType } from './types';
+import { SoulId } from './models/SoulId';
 import axios from 'axios';
 
 // Mock axios
@@ -218,6 +220,203 @@ describe('HiggsfieldClient', () => {
           timeout: 60000
         })
       );
+    });
+  });
+
+  describe('SoulId Methods', () => {
+    describe('createSoulId', () => {
+      it('should create a SoulId successfully', async () => {
+        const mockSoulIdData = {
+          id: 'soul-123',
+          name: 'Test Character',
+          status: SoulIdStatus.QUEUED
+        };
+
+        const mockCompletedData = {
+          id: 'soul-123',
+          name: 'Test Character',
+          status: SoulIdStatus.COMPLETED
+        };
+
+        // Mock the initial creation
+        mockedAxios.post.mockResolvedValueOnce({ data: mockSoulIdData });
+        
+        // Mock polling responses
+        mockedAxios.get
+          .mockResolvedValueOnce({ data: { status: SoulIdStatus.IN_PROGRESS } })
+          .mockResolvedValueOnce({ data: { status: SoulIdStatus.COMPLETED } });
+
+        const createData = {
+          name: 'Test Character',
+          input_images: [
+            { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/img1.jpg' },
+            { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/img2.jpg' }
+          ]
+        };
+
+        const result = await client.createSoulId(createData, true);
+
+        expect(mockedAxios.post).toHaveBeenCalledWith('/v1/custom-references', createData);
+        expect(result).toBeInstanceOf(SoulId);
+        expect(result.id).toBe('soul-123');
+        expect(result.name).toBe('Test Character');
+        expect(result.status).toBe(SoulIdStatus.COMPLETED);
+      });
+
+      it('should create a SoulId without polling', async () => {
+        const mockSoulIdData = {
+          id: 'soul-456',
+          name: 'Another Character',
+          status: SoulIdStatus.QUEUED
+        };
+
+        mockedAxios.post.mockResolvedValueOnce({ data: mockSoulIdData });
+
+        const createData = {
+          name: 'Another Character',
+          input_images: [
+            { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/img3.jpg' }
+          ]
+        };
+
+        const result = await client.createSoulId(createData, false);
+
+        expect(mockedAxios.post).toHaveBeenCalledWith('/v1/custom-references', createData);
+        expect(mockedAxios.get).not.toHaveBeenCalled(); // No polling
+        expect(result).toBeInstanceOf(SoulId);
+        expect(result.status).toBe(SoulIdStatus.QUEUED);
+      });
+
+      it('should handle creation errors', async () => {
+        const error = {
+          response: {
+            status: 400,
+            data: { detail: 'Invalid input images' }
+          }
+        };
+
+        mockedAxios.post.mockRejectedValueOnce(error);
+
+        const createData = {
+          name: 'Bad Character',
+          input_images: []
+        };
+
+        // The interceptor will catch this and throw BadInputError
+        const interceptorCall = (mockedAxios.interceptors.response.use as jest.Mock).mock.calls[0];
+        const responseInterceptor = interceptorCall[1];
+        
+        await expect(async () => {
+          try {
+            await client.createSoulId(createData);
+          } catch (e) {
+            throw responseInterceptor(error);
+          }
+        }).rejects.toThrow(BadInputError);
+      });
+    });
+
+    describe('listSoulIds', () => {
+      it('should list SoulIds with default pagination', async () => {
+        const mockResponse = {
+          total: 15,
+          page: 1,
+          page_size: 20,
+          total_pages: 1,
+          items: [
+            {
+              id: 'soul-1',
+              name: 'Character 1',
+              status: SoulIdStatus.COMPLETED
+            },
+            {
+              id: 'soul-2',
+              name: 'Character 2',
+              status: SoulIdStatus.IN_PROGRESS
+            }
+          ]
+        };
+
+        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+
+        const result = await client.listSoulIds();
+
+        expect(mockedAxios.get).toHaveBeenCalledWith('/v1/custom-references/list', {
+          params: { page: 1, page_size: 20 }
+        });
+        expect(result.total).toBe(15);
+        expect(result.items).toHaveLength(2);
+        expect(result.items[0]).toBeInstanceOf(SoulId);
+        expect(result.items[0].id).toBe('soul-1');
+      });
+
+      it('should list SoulIds with custom pagination', async () => {
+        const mockResponse = {
+          total: 50,
+          page: 2,
+          page_size: 10,
+          total_pages: 5,
+          items: [
+            {
+              id: 'soul-11',
+              name: 'Character 11',
+              status: SoulIdStatus.QUEUED
+            }
+          ]
+        };
+
+        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+
+        const result = await client.listSoulIds(2, 10);
+
+        expect(mockedAxios.get).toHaveBeenCalledWith('/v1/custom-references/list', {
+          params: { page: 2, page_size: 10 }
+        });
+        expect(result.page).toBe(2);
+        expect(result.page_size).toBe(10);
+        expect(result.total_pages).toBe(5);
+        expect(result.items[0].name).toBe('Character 11');
+      });
+
+      it('should handle empty list response', async () => {
+        const mockResponse = {
+          total: 0,
+          page: 1,
+          page_size: 20,
+          total_pages: 0,
+          items: []
+        };
+
+        mockedAxios.get.mockResolvedValueOnce({ data: mockResponse });
+
+        const result = await client.listSoulIds();
+
+        expect(result.total).toBe(0);
+        expect(result.items).toEqual([]);
+        expect(result.total_pages).toBe(0);
+      });
+
+      it('should handle list errors', async () => {
+        const error = {
+          response: {
+            status: 401,
+            data: { detail: 'Unauthorized' }
+          }
+        };
+
+        mockedAxios.get.mockRejectedValueOnce(error);
+
+        const interceptorCall = (mockedAxios.interceptors.response.use as jest.Mock).mock.calls[0];
+        const responseInterceptor = interceptorCall[1];
+        
+        await expect(async () => {
+          try {
+            await client.listSoulIds();
+          } catch (e) {
+            throw responseInterceptor(error);
+          }
+        }).rejects.toThrow(AuthenticationError);
+      });
     });
   });
 });

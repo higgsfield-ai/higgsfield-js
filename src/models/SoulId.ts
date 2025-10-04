@@ -1,47 +1,29 @@
 import axios, { AxiosInstance } from 'axios';
 import { Config } from '../config';
 import { TimeoutError } from '../errors';
-import { JobStatus, Job, JobSetData } from '../types';
+import { SoulIdData, SoulIdStatus } from '../types';
 
-export class JobSet {
+export class SoulId {
   id: string;
-  jobs: Job[];
+  status: SoulIdStatus;
+  name: string;
 
-  constructor(data: JobSetData) {
+  constructor(data: SoulIdData) {
     this.id = data.id;
-    this.jobs = data.jobs;
-  }
-
-  get isQueued(): boolean {
-    return this.checkStatus(JobStatus.QUEUED);
-  }
-
-  get isInProgress(): boolean {
-    return this.checkStatus(JobStatus.IN_PROGRESS);
-  }
-
-  get isCompleted(): boolean {
-    return this.checkStatus(JobStatus.COMPLETED);
-  }
-
-  get isNsfw(): boolean {
-    return this.checkStatus(JobStatus.NSFW);
-  }
-
-  get isFailed(): boolean {
-    return this.checkStatus(JobStatus.FAILED);
-  }
-
-  get isCanceled(): boolean {
-    return this.checkStatus(JobStatus.CANCELED);
+    this.name = data.name;
+    this.status = data.status;
   }
 
   get pollingUrl(): string {
-    return `/v1/job-sets/${this.id}`;
+    return `/v1/custom-references/${this.id}`;
   }
 
-  private checkStatus(status: JobStatus): boolean {
-    return this.jobs.some(job => job.status === status);
+  get isCompleted(): boolean {
+    return this.status == SoulIdStatus.COMPLETED;
+  }
+
+  get isFailed(): boolean {
+    return this.status == SoulIdStatus.FAILED;
   }
 
   async poll(client: AxiosInstance, config: Config): Promise<void> {
@@ -56,9 +38,9 @@ export class JobSet {
 
       try {
         const response = await client.get(this.pollingUrl);
-        this.jobs = response.data.jobs;
+        this.status = response.data.status;
 
-        if (this.isCompleted || this.isNsfw || this.isFailed || this.isCanceled) {
+        if (this.isCompleted || this.isFailed) {
           break;
         }
       } catch (error) {

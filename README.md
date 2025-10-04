@@ -273,6 +273,44 @@ for (const job of jobSet.jobs) {
 }
 ```
 
+### Custom Character References (SoulIds)
+
+Create and manage custom character references for consistent character generation across multiple images.
+
+```typescript
+import { InputImageType } from '@higgsfield/client';
+
+// List existing SoulIds
+const soulIdList = await client.listSoulIds(1, 10); // page 1, 10 items per page
+console.log(`Total SoulIds: ${soulIdList.total}`);
+soulIdList.items.forEach(soul => {
+  console.log(`${soul.name} (${soul.id}): ${soul.status}`);
+});
+
+// Create a new SoulId from reference images
+const newSoulId = await client.createSoulId({
+  name: 'My Character',
+  input_images: [
+    { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref1.jpg' },
+    { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref2.jpg' },
+    { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref3.jpg' }
+  ]
+}, true); // with polling
+
+console.log('Created SoulId:', newSoulId.id);
+
+// Use the SoulId in text-to-image generation
+if (newSoulId.isCompleted) {
+  const jobSet = await client.generate('/v1/text2image/soul', {
+    prompt: 'Portrait in professional attire',
+    custom_reference_id: newSoulId.id,
+    custom_reference_strength: strength(1),
+    width_and_height: SoulSize.PORTRAIT_1536x2048,
+    quality: SoulQuality.HD
+  });
+}
+```
+
 ## API Methods
 
 ### Core Methods
@@ -282,6 +320,8 @@ for (const job of jobSet.jobs) {
 - `getSoulStyles(): Promise<SoulStyle[]>` - Get available Soul styles for text-to-image generation
 - `uploadImage(imageBuffer: Buffer, format?: 'jpeg' | 'png' | 'webp'): Promise<string>` - Upload an image and get its URL
 - `upload(data: Buffer | Uint8Array, contentType: string): Promise<string>` - Upload any data with specific content type
+- `createSoulId(data: SoulIdCreateData, withPolling?: boolean): Promise<SoulId>` - Create a custom character reference (SoulId) for consistent generation
+- `listSoulIds(page?: number, pageSize?: number): Promise<SoulIdListResponse>` - List all your SoulIds with pagination
 
 ## Working with Jobs
 
