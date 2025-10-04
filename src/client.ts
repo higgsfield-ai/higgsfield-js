@@ -2,8 +2,9 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Config, ClientConfig } from './config';
 import { fetchCredentials, Credentials } from './auth';
 import { APIError, AuthenticationError, BadInputError, NotEnoughCreditsError, ValidationError } from './errors';
-import { GenerateParams, UploadResponse, WebhookPayload, SoulStyle, Motion } from './types';
+import { GenerateParams, UploadResponse, WebhookPayload, SoulStyle, Motion, SoulIdCreateData, SoulIdListResponse } from './types';
 import { JobSet } from './models/JobSet';
+import { SoulId } from './models/SoulId';
 import { retryWithBackoff } from './utils/retry';
 
 export class HiggsfieldClient {
@@ -99,6 +100,37 @@ export class HiggsfieldClient {
     }
 
     return jobSet;
+  }
+
+  async createSoulId(
+    data: SoulIdCreateData,
+    withPolling?: boolean
+  ): Promise<SoulId> {
+    const response = await this.client.post('/v1/custom-references', data);
+    const soulId = new SoulId(response.data);
+
+    if (withPolling ?? true) {
+      await soulId.poll(this.client, this.config);
+    }
+
+    return soulId;
+  }
+
+  async listSoulIds(page: number = 1, pageSize: number = 20): Promise<SoulIdListResponse> {
+    const response = await this.client.get<SoulIdListResponse>('/v1/custom-references/list', {
+      params: {
+        page: page,
+        page_size: pageSize
+      }
+    });
+    
+    // Convert each item to a SoulId instance
+    const soulIds = response.data.items.map(item => new SoulId(item));
+    
+    return {
+      ...response.data,
+      items: soulIds
+    };
   }
 
   /**
