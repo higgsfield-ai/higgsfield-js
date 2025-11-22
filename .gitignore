@@ -13,3 +13,8 @@ yarn-error.log
 examples/
 *.example.ts
 *.example.js
+
+# Source maps (not included in production builds)
+*.js.map
+*.d.ts.map
+.test-v2.ts

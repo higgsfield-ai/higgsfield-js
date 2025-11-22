@@ -2,6 +2,8 @@
 
 Official SDK for interacting with Higgsfield AI's video and image generation APIs.
 
+> **Note:** We recommend using the [V2 Client](#v2-client-recommended) for new projects. It provides automatic schema loading, improved type safety, and uses the `Authorization: Key ${apiKey}` authentication format.
+
 ## Installation
 
 ```bash
@@ -45,6 +47,133 @@ export HF_SECRET="YOUR_API_SECRET"
 Then initialize without credentials:
 ```typescript
 const client = new HiggsfieldClient();
+```
+
+## V2 Client (Recommended)
+
+The v2 client provides a simplified API with automatic schema loading and improved type safety. It uses `Authorization: Key KEY_ID:KEY_SECRET` authentication and includes automatic schema discovery.
+
+### Quick Start with V2
+
+Before diving into the client-specific features, ensure you've set up your credentials:
+
+```typescript
+import { higgsfield, config } from '@higgsfield/client/v2';
+
+// Configure credentials (similar to fal.ai SDK)
+config({
+  // Can also be auto-configured using environment variables:
+  // Either a single HF_CREDENTIALS or a combination of HF_API_KEY and HF_API_SECRET
+  credentials: "KEY_ID:KEY_SECRET",
+});
+
+// Or create your own client instance
+import { createHiggsfieldClient } from '@higgsfield/client/v2';
+
+const client = createHiggsfieldClient({
+  credentials: 'KEY_ID:KEY_SECRET'
+}, {
+  autoLoadSchemas: true,      // Automatically load model schemas
+  loadSchemasOnInit: false    // Lazy load (load on first use)
+});
+```
+
+### V2 Authentication
+
+The v2 client uses `Authorization: Key KEY_ID:KEY_SECRET` header format and automatically sets the `User-Agent: higgsfield-client-py/1.0` header.
+
+```typescript
+// Configure with credentials (recommended)
+config({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+
+// Or use separate fields (backward compatibility)
+config({
+  apiKey: 'YOUR_KEY_ID',
+  apiSecret: 'YOUR_KEY_SECRET'
+});
+
+// Or use environment variables
+// HF_CREDENTIALS, or HF_API_KEY and HF_API_SECRET
+```
+
+### V2 API Methods
+
+The v2 client uses the `subscribe` method instead of `generate`:
+
+```typescript
+// Subscribe to an endpoint
+const jobSet = await client.subscribe('/v1/image2video/dop', {
+  input: {
+    model: 'dop-turbo',
+    prompt: 'A beautiful sunset',
+    input_images: [{ 
+      type: 'image_url', 
+      image_url: 'https://example.com/image.jpg' 
+    }]
+  },
+  withPolling: true,  // Automatically poll for completion
+  webhook: {           // Optional webhook
+    url: 'https://your-webhook-url.com/callback',
+    secret: 'your-webhook-secret'
+  }
+});
+
+// Get available model schemas
+const schemas = await client.getModelSchemas();
+console.log('Available models:', schemas);
+```
+
+### V2 Example: Image-to-Video
+
+```typescript
+import { higgsfield, config } from '@higgsfield/client/v2';
+
+// Configure credentials
+config({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+
+// Use the pre-configured client
+const jobSet = await higgsfield.subscribe('/v1/image2video/dop', {
+  input: {
+    model: 'dop-turbo',
+    prompt: 'Cinematic camera movement',
+    input_images: [{ 
+      type: 'image_url', 
+      image_url: 'https://example.com/image.jpg' 
+    }]
+  },
+  withPolling: true
+});
+
+if (jobSet.isCompleted) {
+  console.log('Video URL:', jobSet.jobs[0].results?.raw.url);
+}
+```
+
+### V2 Example: Text-to-Image
+
+```typescript
+import { higgsfield, config } from '@higgsfield/client/v2';
+
+config({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+
+const jobSet = await higgsfield.subscribe('/v1/text2image/soul', {
+  input: {
+    prompt: 'A majestic mountain landscape at sunset',
+    width_and_height: '1536x1536',
+    quality: 'hd'
+  },
+  withPolling: true
+});
+
+if (jobSet.isCompleted) {
+  console.log('Image URL:', jobSet.jobs[0].results?.raw.url);
+}
 ```
 
 ## API Endpoints
@@ -475,6 +604,8 @@ const client = new HiggsfieldClient({
 
 The SDK is written in TypeScript and provides full type definitions:
 
+### V1 Client Types
+
 ```typescript
 import { 
   HiggsfieldClient, 
@@ -502,6 +633,35 @@ if (jobSet.isCompleted) {
 if (jobSet.jobs[0].status === JobStatus.COMPLETED) {
   // Handle completed job
 }
+```
+
+### V2 Client Types
+
+```typescript
+import { 
+  createHiggsfieldClient,
+  HiggsfieldClient,
+  ModelSchema,
+  JobSet
+} from '@higgsfield/client/v2';
+
+// Client is fully typed
+const client = createHiggsfieldClient({
+  apiKey: 'YOUR_API_KEY',
+  apiSecret: 'YOUR_API_SECRET'
+});
+
+// Model schemas provide type information
+const schemas: ModelSchema[] = await client.getModelSchemas();
+
+// Subscribe method is fully typed
+const jobSet: JobSet = await client.subscribe('/v1/image2video/dop', {
+  input: {
+    model: 'dop-turbo',
+    prompt: 'Test',
+    input_images: []
+  }
+});
 ```
 
 ## Best Practices

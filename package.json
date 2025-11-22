@@ -4,6 +4,16 @@
   "description": "Official Higgsfield SDK for Node.js and TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./v2": {
+      "types": "./dist/v2/index.d.ts",
+      "default": "./dist/v2/index.js"
+    }
+  },
   "files": [
     "dist/**/*",
     "README.md",
@@ -12,11 +22,13 @@
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
+    "build:prod": "tsc -p tsconfig.prod.json",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:v2": "npx ts-node test-v2.ts",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write \"src/**/*.ts\"",
-    "prepublishOnly": "npm run build && npm run test",
+    "prepublishOnly": "npm run build:prod && npm run test",
     "version": "git add -A src",
     "postversion": "git push && git push --tags"
   },

@@ -14,7 +14,7 @@ export class AuthenticationError extends HiggsfieldError {
 
 export class CredentialsMissedError extends HiggsfieldError {
   constructor() {
-    super('API credentials not found. Set HF_API_KEY and HF_API_SECRET environment variables or pass them in config.');
+    super('API credentials not found. Set HF_CREDENTIALS (or HF_KEY) environment variable with format "KEY_ID:KEY_SECRET", or set HF_API_KEY and HF_API_SECRET environment variables, or pass them in config.');
     this.name = 'CredentialsMissedError';
   }
 }
@@ -98,5 +98,12 @@ export class BadInputError extends APIError {
     super(message);
     this.name = 'BadInputError';
     this.details = details;
+  }
+}
+
+export class BrowserNotSupportedError extends HiggsfieldError {
+  constructor() {
+    super('This SDK is not supported in browser environments. Please use it in a Node.js environment.');
+    this.name = 'BrowserNotSupportedError';
   }
 }
