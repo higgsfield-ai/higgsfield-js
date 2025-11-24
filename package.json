@@ -1,6 +1,6 @@
 {
   "name": "@higgsfield/client",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Official Higgsfield SDK for Node.js and TypeScript",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -47,10 +47,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/higgsfield/nodejs-client.git"
+    "url": "https://github.com/higgsfield-ai/higgsfield-js.git"
   },
   "bugs": {
-    "url": "https://github.com/higgsfield/nodejs-client/issues"
+    "url": "https://github.com/higgsfield-ai/higgsfield-js.git/issues"
   },
   "homepage": "https://higgsfield.ai",
   "engines": {
