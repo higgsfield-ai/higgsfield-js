@@ -2,7 +2,7 @@
 
 Official SDK for interacting with Higgsfield AI's video and image generation APIs.
 
-> **Note:** We recommend using the [V2 Client](#v2-client-recommended) for new projects. It provides automatic schema loading, improved type safety, and uses the `Authorization: Key ${apiKey}` authentication format.
+> **Note:** We recommend using the [V2 Client](#v2-client-recommended) for new projects. It uses the `Authorization: Key KEY_ID:KEY_SECRET` authentication format, supports a single `credentials` field, and is designed exclusively for server-side/node environments (browser usage is blocked for security).
 
 ## Installation
 
@@ -51,7 +51,7 @@ const client = new HiggsfieldClient();
 
 ## V2 Client (Recommended)
 
-The v2 client provides a simplified API with automatic schema loading and improved type safety. It uses `Authorization: Key KEY_ID:KEY_SECRET` authentication and includes automatic schema discovery.
+The v2 client provides a simplified API focused on the latest endpoints. It uses a single `credentials` field (`KEY_ID:KEY_SECRET`), automatically sets the `Authorization: Key KEY_ID:KEY_SECRET` header, emits an obfuscated `User-Agent: higgsfield-server-js/2.0` header (Node.js only), and refuses to run in browser environments for security.
 
 ### Quick Start with V2
 
@@ -72,15 +72,12 @@ import { createHiggsfieldClient } from '@higgsfield/client/v2';
 
 const client = createHiggsfieldClient({
   credentials: 'KEY_ID:KEY_SECRET'
-}, {
-  autoLoadSchemas: true,      // Automatically load model schemas
-  loadSchemasOnInit: false    // Lazy load (load on first use)
 });
 ```
 
-### V2 Authentication
+### V2 Authentication & Environment
 
-The v2 client uses `Authorization: Key KEY_ID:KEY_SECRET` header format and automatically sets the `User-Agent: higgsfield-client-py/1.0` header.
+The v2 client uses the `Authorization: Key KEY_ID:KEY_SECRET` header format, supports a single `credentials` string, and automatically sets the obfuscated `User-Agent: higgsfield-server-js/2.0` header when running in Node.js. Browser environments are explicitly blocked; the SDK will throw `BrowserNotSupportedError` if it detects `window`.
 
 ```typescript
 // Configure with credentials (recommended)
@@ -95,7 +92,7 @@ config({
 });
 
 // Or use environment variables
-// HF_CREDENTIALS, or HF_API_KEY and HF_API_SECRET
+// HF_CREDENTIALS (preferred) or HF_API_KEY + HF_API_SECRET
 ```
 
 ### V2 API Methods
@@ -104,14 +101,12 @@ The v2 client uses the `subscribe` method instead of `generate`:
 
 ```typescript
 // Subscribe to an endpoint
-const jobSet = await client.subscribe('/v1/image2video/dop', {
+const jobSet = await client.subscribe('flux-pro/kontext/max/text-to-image', {
   input: {
-    model: 'dop-turbo',
+    aspect_ratio: '9:16',
     prompt: 'A beautiful sunset',
-    input_images: [{ 
-      type: 'image_url', 
-      image_url: 'https://example.com/image.jpg' 
-    }]
+    safety_tolerance: 2,
+    seed: 1234
   },
   withPolling: true,  // Automatically poll for completion
   webhook: {           // Optional webhook
@@ -120,9 +115,8 @@ const jobSet = await client.subscribe('/v1/image2video/dop', {
   }
 });
 
-// Get available model schemas
-const schemas = await client.getModelSchemas();
-console.log('Available models:', schemas);
+// When a webhook is provided the SDK automatically appends ?hf_webhook=<url>
+// to the endpoint, so no extra payload configuration is required.
 ```
 
 ### V2 Example: Image-to-Video
@@ -175,6 +169,31 @@ if (jobSet.isCompleted) {
   console.log('Image URL:', jobSet.jobs[0].results?.raw.url);
 }
 ```
+
+### V2 Polling & Status Lifecycle
+
+The v2 client polls `/requests/{request_id}/status` on your behalf when `withPolling` is true. Responses contain a top-level status plus optional `images` and `video` collections which the SDK maps into the standard `JobSet` shape. Possible statuses:
+
+- `queued` – request accepted and waiting for execution
+- `in_progress` – generation currently running (cannot cancel)
+- `nsfw` – content rejected by moderation, credits refunded
+- `failed` – generation errored, credits refunded
+- `completed` – generation finished and media URLs are returned
+
+Example response returned by the API (before SDK mapping):
+
+```json
+{
+  "status": "completed",
+  "request_id": "d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff",
+  "status_url": "https://platform.higgsfield.ai/requests/d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff/status",
+  "cancel_url": "https://platform.higgsfield.ai/requests/d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff/cancel",
+  "images": [{ "url": "https://image.url/example.jpg" }],
+  "video": { "url": "https://video.url/example.mp4" }
+}
+```
+
+The SDK converts this into a `JobSet` with a single job whose `results.raw` and `results.min` entries point to the returned media URLs, so downstream code can keep using the same interfaces as v1.
 
 ## API Endpoints
 
@@ -638,28 +657,22 @@ if (jobSet.jobs[0].status === JobStatus.COMPLETED) {
 ### V2 Client Types
 
 ```typescript
-import { 
+import {
   createHiggsfieldClient,
   HiggsfieldClient,
-  ModelSchema,
   JobSet
 } from '@higgsfield/client/v2';
 
 // Client is fully typed
-const client = createHiggsfieldClient({
-  apiKey: 'YOUR_API_KEY',
-  apiSecret: 'YOUR_API_SECRET'
+const client: HiggsfieldClient = createHiggsfieldClient({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
 });
 
-// Model schemas provide type information
-const schemas: ModelSchema[] = await client.getModelSchemas();
-
 // Subscribe method is fully typed
-const jobSet: JobSet = await client.subscribe('/v1/image2video/dop', {
+const jobSet: JobSet = await client.subscribe('flux-pro/kontext/max/text-to-image', {
   input: {
-    model: 'dop-turbo',
     prompt: 'Test',
-    input_images: []
+    aspect_ratio: '1:1'
   }
 });
 ```
