@@ -2,124 +2,25 @@
 
 Official SDK for interacting with Higgsfield AI's video and image generation APIs.
 
-> **Note:** We recommend using the [V2 Client](#v2-client-recommended) for new projects. It uses the `Authorization: Key KEY_ID:KEY_SECRET` authentication format, supports a single `credentials` field, and is designed exclusively for server-side/node environments (browser usage is blocked for security).
-
 ## Installation
 
 ```bash
 npm install @higgsfield/client
 ```
 
-## Quick Start
-
-```typescript
-import { HiggsfieldClient } from '@higgsfield/client';
-import { InputImage, InputAudio, inputMotion, SoulQuality, SoulSize, BatchSize, DoPModel, SpeakVideoQuality, SpeakDuration, webhook, strength, seed } from '@higgsfield/client/helpers';
-
-// Initialize the client
-const client = new HiggsfieldClient({
-  apiKey: 'YOUR_API_KEY',
-  apiSecret: 'YOUR_API_SECRET'
-});
-```
-
-## Authentication
-
-The SDK supports multiple authentication methods:
-
-### Option 1: Pass credentials directly
-
-```typescript
-const client = new HiggsfieldClient({
-  apiKey: 'YOUR_API_KEY',
-  apiSecret: 'YOUR_API_SECRET'
-});
-```
-
-### Option 2: Use environment variables
-
-Set the following environment variables:
-```bash
-export HF_API_KEY="YOUR_API_KEY"
-export HF_SECRET="YOUR_API_SECRET"
-```
-
-Then initialize without credentials:
-```typescript
-const client = new HiggsfieldClient();
-```
+---
 
 ## V2 Client (Recommended)
 
-The v2 client provides a simplified API focused on the latest endpoints. It uses a single `credentials` field (`KEY_ID:KEY_SECRET`), automatically sets the `Authorization: Key KEY_ID:KEY_SECRET` header, emits an obfuscated `User-Agent: higgsfield-server-js/2.0` header (Node.js only), and refuses to run in browser environments for security.
+The v2 client is the modern, recommended way to use the Higgsfield SDK. It features:
+- Single `credentials` field (`KEY_ID:KEY_SECRET` format)
+- `Authorization: Key KEY_ID:KEY_SECRET` authentication header
+- Automatic obfuscated `User-Agent: higgsfield-server-js/2.0` header
+- Server-side only (browser usage blocked for security)
+- Simplified API with `subscribe()` method
+- Automatic polling via `/requests/{request_id}/status` endpoint
 
-### Quick Start with V2
-
-Before diving into the client-specific features, ensure you've set up your credentials:
-
-```typescript
-import { higgsfield, config } from '@higgsfield/client/v2';
-
-// Configure credentials (similar to fal.ai SDK)
-config({
-  // Can also be auto-configured using environment variables:
-  // Either a single HF_CREDENTIALS or a combination of HF_API_KEY and HF_API_SECRET
-  credentials: "KEY_ID:KEY_SECRET",
-});
-
-// Or create your own client instance
-import { createHiggsfieldClient } from '@higgsfield/client/v2';
-
-const client = createHiggsfieldClient({
-  credentials: 'KEY_ID:KEY_SECRET'
-});
-```
-
-### V2 Authentication & Environment
-
-The v2 client uses the `Authorization: Key KEY_ID:KEY_SECRET` header format, supports a single `credentials` string, and automatically sets the obfuscated `User-Agent: higgsfield-server-js/2.0` header when running in Node.js. Browser environments are explicitly blocked; the SDK will throw `BrowserNotSupportedError` if it detects `window`.
-
-```typescript
-// Configure with credentials (recommended)
-config({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
-});
-
-// Or use separate fields (backward compatibility)
-config({
-  apiKey: 'YOUR_KEY_ID',
-  apiSecret: 'YOUR_KEY_SECRET'
-});
-
-// Or use environment variables
-// HF_CREDENTIALS (preferred) or HF_API_KEY + HF_API_SECRET
-```
-
-### V2 API Methods
-
-The v2 client uses the `subscribe` method instead of `generate`:
-
-```typescript
-// Subscribe to an endpoint
-const jobSet = await client.subscribe('flux-pro/kontext/max/text-to-image', {
-  input: {
-    aspect_ratio: '9:16',
-    prompt: 'A beautiful sunset',
-    safety_tolerance: 2,
-    seed: 1234
-  },
-  withPolling: true,  // Automatically poll for completion
-  webhook: {           // Optional webhook
-    url: 'https://your-webhook-url.com/callback',
-    secret: 'your-webhook-secret'
-  }
-});
-
-// When a webhook is provided the SDK automatically appends ?hf_webhook=<url>
-// to the endpoint, so no extra payload configuration is required.
-```
-
-### V2 Example: Image-to-Video
+### Quick Start
 
 ```typescript
 import { higgsfield, config } from '@higgsfield/client/v2';
@@ -129,7 +30,129 @@ config({
   credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
 });
 
-// Use the pre-configured client
+// Generate content
+const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', {
+  input: {
+    aspect_ratio: '9:16',
+    prompt: 'A beautiful sunset',
+    safety_tolerance: 2,
+    seed: 1234
+  },
+  withPolling: true
+});
+
+if (jobSet.isCompleted) {
+  console.log('Image URL:', jobSet.jobs[0].results?.raw.url);
+}
+```
+
+### Authentication
+
+The v2 client supports multiple authentication methods:
+
+**Option 1: Single credentials field (recommended)**
+```typescript
+import { config } from '@higgsfield/client/v2';
+
+config({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+```
+
+**Option 2: Separate fields (backward compatibility)**
+```typescript
+config({
+  apiKey: 'YOUR_KEY_ID',
+  apiSecret: 'YOUR_KEY_SECRET'
+});
+```
+
+**Option 3: Environment variables**
+```bash
+# Preferred: Single variable
+export HF_CREDENTIALS="YOUR_KEY_ID:YOUR_KEY_SECRET"
+
+# Or separate variables
+export HF_API_KEY="YOUR_KEY_ID"
+export HF_API_SECRET="YOUR_KEY_SECRET"
+```
+
+```typescript
+// No config needed - automatically reads from environment
+import { higgsfield } from '@higgsfield/client/v2';
+```
+
+### Creating a Client Instance
+
+```typescript
+import { createHiggsfieldClient } from '@higgsfield/client/v2';
+
+const client = createHiggsfieldClient({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+```
+
+### API Methods
+
+#### `subscribe(endpoint, options)`
+
+Subscribe to an endpoint for content generation:
+
+```typescript
+const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', {
+  input: {
+    aspect_ratio: '9:16',
+    prompt: 'A beautiful sunset',
+    safety_tolerance: 2,
+    seed: 1234
+  },
+  withPolling: true,  // Automatically poll for completion (default: true)
+  webhook: {           // Optional webhook
+    url: 'https://your-webhook-url.com/callback',
+    secret: 'your-webhook-secret'
+  }
+});
+```
+
+**Parameters:**
+- `endpoint` (string): The API endpoint (e.g., `'flux-pro/kontext/max/text-to-image'`)
+- `options.input` (object): Input parameters for the endpoint
+- `options.withPolling` (boolean, default: `true`): Automatically poll for job completion
+- `options.webhook` (object, optional): Webhook configuration
+  - `url` (string): Webhook URL
+  - `secret` (string): Webhook secret
+
+**Note:** When a webhook is provided, the SDK automatically appends `?hf_webhook=<url>` to the endpoint URL.
+
+### Examples
+
+#### Text-to-Image Generation
+
+```typescript
+import { higgsfield, config } from '@higgsfield/client/v2';
+
+config({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+
+const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', {
+  input: {
+    aspect_ratio: '9:16',
+    prompt: 'A majestic mountain landscape at sunset',
+    safety_tolerance: 2,
+    seed: 1234
+  },
+  withPolling: true
+});
+
+if (jobSet.isCompleted) {
+  console.log('Image URL:', jobSet.jobs[0].results?.raw.url);
+}
+```
+
+#### Image-to-Video Generation
+
+```typescript
 const jobSet = await higgsfield.subscribe('/v1/image2video/dop', {
   input: {
     model: 'dop-turbo',
@@ -147,41 +170,18 @@ if (jobSet.isCompleted) {
 }
 ```
 
-### V2 Example: Text-to-Image
+### Polling & Status Lifecycle
 
-```typescript
-import { higgsfield, config } from '@higgsfield/client/v2';
+The v2 client automatically polls `/requests/{request_id}/status` when `withPolling` is `true`. The API returns responses with the following structure:
 
-config({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
-});
+**Status Values:**
+- `queued` – Request accepted and waiting for execution
+- `in_progress` – Generation currently running (cannot cancel)
+- `nsfw` – Content rejected by moderation, credits refunded
+- `failed` – Generation errored, credits refunded
+- `completed` – Generation finished and media URLs are returned
 
-const jobSet = await higgsfield.subscribe('/v1/text2image/soul', {
-  input: {
-    prompt: 'A majestic mountain landscape at sunset',
-    width_and_height: '1536x1536',
-    quality: 'hd'
-  },
-  withPolling: true
-});
-
-if (jobSet.isCompleted) {
-  console.log('Image URL:', jobSet.jobs[0].results?.raw.url);
-}
-```
-
-### V2 Polling & Status Lifecycle
-
-The v2 client polls `/requests/{request_id}/status` on your behalf when `withPolling` is true. Responses contain a top-level status plus optional `images` and `video` collections which the SDK maps into the standard `JobSet` shape. Possible statuses:
-
-- `queued` – request accepted and waiting for execution
-- `in_progress` – generation currently running (cannot cancel)
-- `nsfw` – content rejected by moderation, credits refunded
-- `failed` – generation errored, credits refunded
-- `completed` – generation finished and media URLs are returned
-
-Example response returned by the API (before SDK mapping):
-
+**API Response Format:**
 ```json
 {
   "status": "completed",
@@ -193,261 +193,233 @@ Example response returned by the API (before SDK mapping):
 }
 ```
 
-The SDK converts this into a `JobSet` with a single job whose `results.raw` and `results.min` entries point to the returned media URLs, so downstream code can keep using the same interfaces as v1.
+The SDK automatically converts this response into a `JobSet` with a single job, mapping `images`/`video` to `results.raw` and `results.min` for compatibility with existing code.
 
-## API Endpoints
-
-### Image-to-Video Generation (DoP Model)
-
-Generate 5-second videos from static images using the DoP (Director of Photography) model with optional motion presets.
-
-#### Basic Usage (without motion)
+### Working with JobSet
 
 ```typescript
-// Generate video from image (no motion applied)
+const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', {
+  input: { prompt: 'Test' },
+  withPolling: true
+});
+
+// Check status
+console.log('JobSet ID:', jobSet.id);
+console.log('Is completed:', jobSet.isCompleted);
+console.log('Is queued:', jobSet.isQueued);
+console.log('Is in progress:', jobSet.isInProgress);
+console.log('Is failed:', jobSet.isFailed);
+console.log('Is NSFW:', jobSet.isNsfw);
+
+// Access results
+for (const job of jobSet.jobs) {
+  if (job.results) {
+    console.log('Result URL:', job.results.raw.url);
+    console.log('Thumbnail URL:', job.results.min.url);
+  }
+}
+```
+
+### Configuration
+
+```typescript
+import { createHiggsfieldClient } from '@higgsfield/client/v2';
+
+const client = createHiggsfieldClient({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET',
+  
+  // Optional configuration
+  baseURL: 'https://platform.higgsfield.ai', // Default
+  timeout: 120000, // 2 minutes default
+  maxRetries: 3,
+  retryBackoff: 1000,
+  retryMaxBackoff: 60000,
+  pollInterval: 2000, // Check every 2 seconds
+  maxPollTime: 300000, // Timeout after 5 minutes
+  headers: {
+    'X-Custom-Header': 'value'
+  }
+});
+```
+
+### TypeScript Support
+
+```typescript
+import { 
+  createHiggsfieldClient,
+  HiggsfieldClient,
+  JobSet
+} from '@higgsfield/client/v2';
+
+const client: HiggsfieldClient = createHiggsfieldClient({
+  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+});
+
+const jobSet: JobSet = await client.subscribe('flux-pro/kontext/max/text-to-image', {
+  input: {
+    prompt: 'Test',
+    aspect_ratio: '1:1'
+  }
+});
+```
+
+---
+
+## V1 Client (Deprecated)
+
+> **⚠️ Deprecated:** The v1 client is deprecated. Please use the [V2 Client](#v2-client-recommended) for new projects. The v1 client will continue to work but will not receive new features or updates.
+
+The v1 client uses the traditional `generate()` method and supports both browser and Node.js environments.
+
+### Quick Start
+
+```typescript
+import { HiggsfieldClient } from '@higgsfield/client';
+import { InputImage, SoulQuality, SoulSize, BatchSize, DoPModel } from '@higgsfield/client/helpers';
+
+// Initialize the client
+const client = new HiggsfieldClient({
+  apiKey: 'YOUR_API_KEY',
+  apiSecret: 'YOUR_API_SECRET'
+});
+```
+
+### Authentication
+
+**Option 1: Pass credentials directly**
+```typescript
+const client = new HiggsfieldClient({
+  apiKey: 'YOUR_API_KEY',
+  apiSecret: 'YOUR_API_SECRET'
+});
+```
+
+**Option 2: Use environment variables**
+```bash
+export HF_API_KEY="YOUR_API_KEY"
+export HF_SECRET="YOUR_API_SECRET"
+```
+
+```typescript
+const client = new HiggsfieldClient();
+```
+
+### API Methods
+
+#### `generate(endpoint, params, options?)`
+
+Generate content using any Higgsfield API endpoint:
+
+```typescript
+const jobSet = await client.generate('/v1/text2image/soul', {
+  prompt: 'A beautiful landscape',
+  width_and_height: SoulSize.SQUARE_1536x1536,
+  quality: SoulQuality.HD,
+  batch_size: BatchSize.SINGLE
+}, {
+  withPolling: true, // Default: true
+  webhook: {
+    url: 'https://your-webhook-url.com/callback',
+    secret: 'your-webhook-secret'
+  }
+});
+```
+
+#### Other Methods
+
+- `getMotions(): Promise<Motion[]>` - Get available motions for image-to-video generation
+- `getSoulStyles(): Promise<SoulStyle[]>` - Get available Soul styles for text-to-image generation
+- `uploadImage(imageBuffer: Buffer, format?: 'jpeg' | 'png' | 'webp'): Promise<string>` - Upload an image
+- `upload(data: Buffer | Uint8Array, contentType: string): Promise<string>` - Upload any data
+- `createSoulId(data: SoulIdCreateData, withPolling?: boolean): Promise<SoulId>` - Create a custom character reference
+- `listSoulIds(page?: number, pageSize?: number): Promise<SoulIdListResponse>` - List all your SoulIds
+
+### Examples
+
+#### Image-to-Video Generation (DoP Model)
+
+```typescript
+import { InputImage, DoPModel, inputMotion } from '@higgsfield/client/helpers';
+
+// Basic usage
 const jobSet = await client.generate('/v1/image2video/dop', {
-  model: DoPModel.TURBO, // Options: DoPModel.LITE, DoPModel.STANDARD, DoPModel.TURBO
+  model: DoPModel.TURBO,
   prompt: 'Cinematic camera movement around the subject',
   input_images: [InputImage.fromUrl('https://example.com/image.jpg')]
 });
 
-// The generate method automatically polls for completion by default
-// Access results directly from jobSet.jobs
-if (jobSet.isCompleted) {
-  console.log('Video URL:', jobSet.jobs[0].results?.raw.url);
-}
-```
-
-#### Using Predefined Motions
-
-First, fetch available motions:
-
-```typescript
-// Get available motions (returns Motion[])
-const motions: Motion[] = await client.getMotions();
-
-// Motion type structure:
-// {
-//   id: string;
-//   name: string;
-//   description?: string;
-//   preview_url?: string;
-//   start_end_frame?: boolean;
-// }
-
-// Find a specific motion
+// With motions
+const motions = await client.getMotions();
 const zoomMotion = motions.find(m => m.name === 'Zoom In');
-console.log('Motion preview:', zoomMotion.preview_url);
-console.log('Supports start/end frame:', zoomMotion.start_end_frame);
-```
 
-Then use a motion in your generation:
-
-```typescript
-// Generate video with specific motion
 const jobSet = await client.generate('/v1/image2video/dop', {
   model: DoPModel.TURBO,
   prompt: 'Apply zoom motion to the subject',
   input_images: [InputImage.fromUrl('https://example.com/image.jpg')],
-  motions: [
-    inputMotion(zoomMotion.id, 0.8) // Motion UUID from getMotions() with strength (0.0 to 1.0)
-  ]
+  motions: [inputMotion(zoomMotion.id, 0.8)]
 });
-
-// Check completion status
-if (jobSet.isCompleted) {
-  console.log('Video generated successfully');
-  console.log('Video URL:', jobSet.jobs[0].results?.raw.url);
-}
 ```
 
-#### Advanced Example with Upload
+#### Text-to-Image Generation (Soul)
 
 ```typescript
-import fs from 'fs';
+import { SoulQuality, SoulSize, BatchSize, strength, seed } from '@higgsfield/client/helpers';
 
-// Read local image
-const imageBuffer = fs.readFileSync('path/to/your/image.jpg');
-
-// Upload image to Higgsfield CDN
-const imageUrl = await client.uploadImage(imageBuffer, 'jpeg');
-
-// Generate video with multiple motions and webhook
-const jobSet = await client.generate('/v1/image2video/dop', {
-  model: DoPModel.STANDARD, // Highest quality model
-  prompt: 'Cinematic dolly zoom with dramatic lighting',
-  input_images: [InputImage.fromUrl(imageUrl)],
-  motions: [
-    inputMotion('motion-uuid-1', 0.7),
-    inputMotion('motion-uuid-2', 0.5)
-  ], // Can have up to 2 motions
-  seed: seed(42), // For reproducible results
-  enhance_prompt: true // AI-enhanced prompt
-}, {
-  webhook: webhook('https://your-webhook-url.com/callback', 'your-webhook-secret')
-});
-
-// Handle results (polling happens automatically)
-for (const job of jobSet.jobs) {
-  if (job.status === 'completed') {
-    console.log('Video URL:', job.results?.raw.url);
-    console.log('Preview URL:', job.results?.min.url);
-  } else if (job.status === 'failed') {
-    console.error('Job failed');
-  }
-}
-```
-
-### Speech-to-Video Generation (Speak v2)
-
-Generate videos with talking avatars from audio input. **Note: Only WAV audio files are supported.**
-
-#### Basic Usage
-
-```typescript
-// Generate talking avatar video from audio and image
-// Note: Audio must be in WAV format
-const jobSet = await client.generate('/v1/speak/higgsfield', {
-  input_image: InputImage.fromUrl('https://example.com/avatar.jpg'),
-  input_audio: InputAudio.fromUrl('https://example.com/speech.wav'), // Only WAV files supported
-  prompt: 'Professional presentation style',
-  quality: SpeakVideoQuality.MID, // Options: SpeakVideoQuality.MID or SpeakVideoQuality.HIGH
-  duration: SpeakDuration.SHORT, // Options: SpeakDuration.SHORT (5s), MEDIUM (10s), or LONG (15s)
-  seed: seed() // Random seed for varied results
-});
-
-// Check results
-if (jobSet.isCompleted) {
-  console.log('Video URL:', jobSet.jobs[0].results?.raw.url);
-}
-```
-
-### Text-to-Image Generation (Soul)
-
-Generate artistic images from text descriptions using the Soul model.
-
-#### Basic Usage
-
-```typescript
-// Generate image from text
+// Basic usage
 const jobSet = await client.generate('/v1/text2image/soul', {
-  prompt: 'A majestic mountain landscape at sunset, oil painting style',
-  width_and_height: SoulSize.SQUARE_1536x1536, // See SoulSize for all 13 available sizes
-  quality: SoulQuality.SD, // Options: SoulQuality.SD (720p) or SoulQuality.HD (1080p)
-  batch_size: BatchSize.SINGLE, // Options: BatchSize.SINGLE (1) or BatchSize.QUAD (4)
-  enhance_prompt: true // AI-enhanced prompt optimization
+  prompt: 'A majestic mountain landscape at sunset',
+  width_and_height: SoulSize.SQUARE_1536x1536,
+  quality: SoulQuality.HD,
+  batch_size: BatchSize.SINGLE
 });
 
-// Access generated image
-if (jobSet.isCompleted) {
-  console.log('Image URL:', jobSet.jobs[0].results?.raw.url);
-}
-```
-
-#### Using Style Presets
-
-First, fetch available styles:
-
-```typescript
-// Get available Soul styles (returns SoulStyle[])
-const styles: SoulStyle[] = await client.getSoulStyles();
-
-// SoulStyle type structure:
-// {
-//   id: string;
-//   name: string;
-//   description: string;
-//   preview_url: string;
-// }
-
-// Find a specific style
+// With style presets
+const styles = await client.getSoulStyles();
 const oilPaintingStyle = styles.find(s => s.name === 'Oil Painting');
-```
 
-Then use a style in your generation:
-
-```typescript
-// Generate with specific style
 const jobSet = await client.generate('/v1/text2image/soul', {
   prompt: 'Portrait of a wise elderly person',
-  style_id: oilPaintingStyle.id, // Use style from getSoulStyles()
-  style_strength: strength(0.8), // Style intensity (0.0 to 1.0)
+  style_id: oilPaintingStyle.id,
+  style_strength: strength(0.8),
   width_and_height: SoulSize.PORTRAIT_1536x2048,
   quality: SoulQuality.HD,
   batch_size: BatchSize.QUAD,
-  enhance_prompt: false,
-  seed: seed(12345) // For reproducible results
-});
-
-// Get all generated images
-jobSet.jobs.forEach((job, index) => {
-  if (job.status === 'completed') {
-    console.log(`Image ${index + 1}:`, job.results?.raw.url);
-  }
+  seed: seed(12345)
 });
 ```
 
-#### Advanced Example with Parameters
+#### Speech-to-Video Generation (Speak v2)
 
 ```typescript
-// Generate with advanced parameters and character consistency
-const jobSet = await client.generate('/v1/text2image/soul', {
-  prompt: 'Futuristic city with flying cars, cyberpunk aesthetic',
-  width_and_height: SoulSize.LANDSCAPE_2048x1152, // Landscape format
-  quality: SoulQuality.HD,
-  batch_size: BatchSize.QUAD,
-  style_id: 'cyberpunk-style-uuid', // From getSoulStyles()
-  style_strength: strength(0.9),
-  custom_reference_id: 'character-uuid', // Character from custom references
-  custom_reference_strength: strength(0.7),
-  image_reference: InputImage.fromUrl('https://example.com/reference.jpg'),
-  enhance_prompt: true,
-  seed: seed(999) // Fixed seed for consistency
-}, {
-  webhook: webhook('https://your-webhook-url.com/callback', 'your-webhook-secret')
-});
+import { InputImage, InputAudio, SpeakVideoQuality, SpeakDuration } from '@higgsfield/client/helpers';
 
-// Download generated images
-for (const job of jobSet.jobs) {
-  if (job.status === 'completed' && job.results) {
-    console.log('Full resolution:', job.results.raw.url);
-    console.log('Thumbnail:', job.results.min.url);
-    
-    // You can download the images
-    const response = await fetch(job.results.raw.url);
-    const buffer = await response.arrayBuffer();
-    fs.writeFileSync(`output-${job.id}.jpg`, Buffer.from(buffer));
-  }
-}
+const jobSet = await client.generate('/v1/speak/higgsfield', {
+  input_image: InputImage.fromUrl('https://example.com/avatar.jpg'),
+  input_audio: InputAudio.fromUrl('https://example.com/speech.wav'), // Only WAV files
+  prompt: 'Professional presentation style',
+  quality: SpeakVideoQuality.MID,
+  duration: SpeakDuration.SHORT
+});
 ```
 
-### Custom Character References (SoulIds)
-
-Create and manage custom character references for consistent character generation across multiple images.
+#### Custom Character References (SoulIds)
 
 ```typescript
 import { InputImageType } from '@higgsfield/client';
 
 // List existing SoulIds
-const soulIdList = await client.listSoulIds(1, 10); // page 1, 10 items per page
-console.log(`Total SoulIds: ${soulIdList.total}`);
-soulIdList.items.forEach(soul => {
-  console.log(`${soul.name} (${soul.id}): ${soul.status}`);
-});
+const soulIdList = await client.listSoulIds(1, 10);
 
-// Create a new SoulId from reference images
+// Create a new SoulId
 const newSoulId = await client.createSoulId({
   name: 'My Character',
   input_images: [
     { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref1.jpg' },
-    { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref2.jpg' },
-    { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref3.jpg' }
+    { type: InputImageType.IMAGE_URL, image_url: 'https://example.com/ref2.jpg' }
   ]
 }, true); // with polling
 
-console.log('Created SoulId:', newSoulId.id);
-
-// Use the SoulId in text-to-image generation
+// Use in generation
 if (newSoulId.isCompleted) {
   const jobSet = await client.generate('/v1/text2image/soul', {
     prompt: 'Portrait in professional attire',
@@ -459,139 +431,7 @@ if (newSoulId.isCompleted) {
 }
 ```
 
-## API Methods
-
-### Core Methods
-
-- `generate(endpoint: string, params: object, options?: { webhook?: WebhookPayload, withPolling?: boolean }): Promise<JobSet>` - Generate content using any Higgsfield API endpoint
-- `getMotions(): Promise<Motion[]>` - Get available motions for image-to-video generation
-- `getSoulStyles(): Promise<SoulStyle[]>` - Get available Soul styles for text-to-image generation
-- `uploadImage(imageBuffer: Buffer, format?: 'jpeg' | 'png' | 'webp'): Promise<string>` - Upload an image and get its URL
-- `upload(data: Buffer | Uint8Array, contentType: string): Promise<string>` - Upload any data with specific content type
-- `createSoulId(data: SoulIdCreateData, withPolling?: boolean): Promise<SoulId>` - Create a custom character reference (SoulId) for consistent generation
-- `listSoulIds(page?: number, pageSize?: number): Promise<SoulIdListResponse>` - List all your SoulIds with pagination
-
-## Working with Jobs
-
-### Job Status Monitoring
-
-```typescript
-// Create a job without automatic polling
-const jobSet = await client.generate('/v1/text2image/soul', {
-  prompt: 'Beautiful landscape',
-  width_and_height: '1536x1536'
-}, {
-  withPolling: false // Disable automatic polling
-});
-
-// Check status
-console.log('JobSet ID:', jobSet.id);
-
-// Manual polling (requires access to client's internal axios instance and config)
-// Note: The client's internal properties are private, so this is for demonstration
-// In practice, use withPolling: true (default) for automatic polling
-while (!jobSet.isCompleted && !jobSet.isFailed && !jobSet.isCanceled) {
-  // await jobSet.poll(axiosClient, configObject);
-  console.log('Jobs status:', jobSet.jobs.map(j => j.status));
-  await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
-  break; // Exit for demo purposes
-}
-
-// Access results
-for (const job of jobSet.jobs) {
-  if (job.results) {
-    console.log('Result:', job.results.raw.url);
-  }
-}
-```
-
-### Error Handling
-
-The SDK provides comprehensive error handling with specific error types for different scenarios:
-
-```typescript
-import { 
-  AuthenticationError, 
-  BadInputError, 
-  ValidationError, 
-  NotEnoughCreditsError, 
-  APIError 
-} from '@higgsfield/client';
-
-try {
-  const jobSet = await client.generate('/v1/text2image/soul', {
-    prompt: 'A beautiful landscape',
-    quality: SoulQuality.HD,
-    width_and_height: SoulSize.LANDSCAPE_2048x1152,
-    batch_size: BatchSize.SINGLE
-  });
-
-  // Check for specific job failures
-  for (const job of jobSet.jobs) {
-    switch (job.status) {
-      case 'completed':
-        console.log('Success:', job.results?.raw.url);
-        break;
-      case 'failed':
-        console.error('Generation failed');
-        break;
-      case 'nsfw':
-        console.warn('Content flagged as NSFW');
-        break;
-      case 'canceled':
-        console.warn('Job was canceled');
-        break;
-    }
-  }
-
-} catch (error) {
-  // Handle specific error types
-  if (error instanceof AuthenticationError) {
-    console.error('❌ Authentication failed - check your API credentials');
-    
-  } else if (error instanceof NotEnoughCreditsError) {
-    console.error('💳 Insufficient credits - please top up your account');
-    
-  } else if (error instanceof BadInputError) {
-    console.error('📋 Invalid input parameters:');
-    console.error('Message:', error.message);
-  
-  } else if (error instanceof ValidationError) {
-    console.error('⚠️  Validation error:');
-    console.error('Message:', error.message);
-    
-  } else if (error instanceof APIError) {
-    console.error('🌐 API Error:');
-    console.error('Status:', error.statusCode);
-    console.error('Message:', error.message);
-    console.error('Response:', error.responseData);
-    
-  } else {
-    console.error('💥 Unexpected error:', error);
-  }
-}
-```
-
-#### Helper Function Validation Errors
-
-Helper functions also throw `BadInputError` for invalid inputs:
-
-```typescript
-try {
-  // These will throw BadInputError with descriptive messages
-  const invalidStrength = strength(1.5); // Error: Strength must be between 0 and 1
-  const invalidSeed = seed(-1); // Error: Seed must be an integer between 0 and 1,000,000
-  const emptyImage = InputImage.fromUrl(''); // Error: Image URL must be a non-empty string
-  const emptyMotion = inputMotion('', 0.5); // Error: Motion ID must be a non-empty string
-  
-} catch (error) {
-  if (error instanceof BadInputError) {
-    console.error('Invalid helper input:', error.message);
-  }
-}
-```
-
-## Configuration Options
+### Configuration
 
 ```typescript
 const client = new HiggsfieldClient({
@@ -604,9 +444,9 @@ const client = new HiggsfieldClient({
   timeout: 120000, // 2 minutes default
   
   // Retry Configuration
-  maxRetries: 3, // Maximum 5 retries allowed
-  retryBackoff: 1000, // Start with 1 second
-  retryMaxBackoff: 60000, // Max 60 seconds
+  maxRetries: 3,
+  retryBackoff: 1000,
+  retryMaxBackoff: 60000,
   
   // Polling Configuration
   pollInterval: 2000, // Check every 2 seconds
@@ -619,96 +459,103 @@ const client = new HiggsfieldClient({
 });
 ```
 
-## TypeScript Support
+---
 
-The SDK is written in TypeScript and provides full type definitions:
+## Error Handling
 
-### V1 Client Types
+The SDK provides comprehensive error handling with specific error types:
 
 ```typescript
 import { 
-  HiggsfieldClient, 
-  ClientConfig,
-  JobStatus,
-  JobSet,
-  Job,
-  GenerateParams,
-  SoulStyle,
-  Motion
+  AuthenticationError, 
+  BadInputError, 
+  ValidationError, 
+  NotEnoughCreditsError, 
+  APIError,
+  BrowserNotSupportedError // V2 only
 } from '@higgsfield/client';
 
-// All parameters are fully typed
-const params: GenerateParams = {
-  prompt: 'A beautiful sunset',
-  width: 1024,
-  height: 1024
-};
-
-// JobStatus enum for status checking
-if (jobSet.isCompleted) {
-  // All jobs completed
-}
-// Or check individual job status
-if (jobSet.jobs[0].status === JobStatus.COMPLETED) {
-  // Handle completed job
+try {
+  const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', {
+    input: { prompt: 'Test' }
+  });
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('❌ Authentication failed - check your API credentials');
+  } else if (error instanceof NotEnoughCreditsError) {
+    console.error('💳 Insufficient credits - please top up your account');
+  } else if (error instanceof BadInputError) {
+    console.error('📋 Invalid input parameters:', error.message);
+  } else if (error instanceof ValidationError) {
+    console.error('⚠️  Validation error:', error.message);
+  } else if (error instanceof APIError) {
+    console.error('🌐 API Error:', error.statusCode, error.message);
+  } else if (error instanceof BrowserNotSupportedError) {
+    console.error('🚫 Browser usage not supported - use Node.js environment');
+  } else {
+    console.error('💥 Unexpected error:', error);
+  }
 }
 ```
 
-### V2 Client Types
+### Job Status Handling
 
 ```typescript
-import {
-  createHiggsfieldClient,
-  HiggsfieldClient,
-  JobSet
-} from '@higgsfield/client/v2';
-
-// Client is fully typed
-const client: HiggsfieldClient = createHiggsfieldClient({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
-});
-
-// Subscribe method is fully typed
-const jobSet: JobSet = await client.subscribe('flux-pro/kontext/max/text-to-image', {
-  input: {
-    prompt: 'Test',
-    aspect_ratio: '1:1'
+for (const job of jobSet.jobs) {
+  switch (job.status) {
+    case 'completed':
+      console.log('Success:', job.results?.raw.url);
+      break;
+    case 'failed':
+      console.error('Generation failed');
+      break;
+    case 'nsfw':
+      console.warn('Content flagged as NSFW');
+      break;
+    case 'canceled':
+      console.warn('Job was canceled');
+      break;
   }
-});
+}
 ```
+
+---
 
 ## Best Practices
 
-1. **Upload large files**: For better performance, upload large image/audio files to the CDN first:
+1. **Use V2 Client**: For new projects, always use the V2 client as it's actively maintained and includes security improvements.
+
+2. **Upload large files**: For better performance, upload large image/audio files to the CDN first:
    ```typescript
    const imageUrl = await client.uploadImage(localImageBuffer, 'jpeg');
    ```
 
-2. **Handle rate limits**: Implement exponential backoff for retries:
+3. **Handle rate limits**: Configure exponential backoff for retries:
    ```typescript
-   const client = new HiggsfieldClient({
+   const client = createHiggsfieldClient({
+     credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET',
      maxRetries: 5,
      retryBackoff: 2000,
      retryMaxBackoff: 30000
    });
    ```
 
-3. **Use webhooks for long operations**: For production, consider implementing webhooks instead of polling.
+4. **Use webhooks for long operations**: For production, consider implementing webhooks instead of polling to reduce server load.
 
-4. **Cache motion and style IDs**: Fetch and cache available motions/styles at startup:
+5. **Cache motion and style IDs**: Fetch and cache available motions/styles at startup:
    ```typescript
    const motions = await client.getMotions();
    const styles = await client.getSoulStyles();
-   
-   // Cache these for reuse
    const motionMap = new Map(motions.map(m => [m.id, m]));
    const styleMap = new Map(styles.map(s => [s.id, s]));
    ```
 
-5. **Clean up resources**: Always close the client when done:
-   ```typescript
-   client.close();
+6. **Environment variables**: Store credentials in environment variables for security:
+   ```bash
+   export HF_CREDENTIALS="YOUR_KEY_ID:YOUR_KEY_SECRET"
    ```
+
+---
 
 ## Support
 
