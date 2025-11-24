@@ -16,7 +16,5 @@ export { configureClient as configure, V2ClientConfig, createHiggsfieldClient };
 export * from '../types';
 export * from '../errors';
 export * from '../helpers';
-export * from './types';  // Export v2-specific types
-export { JobSet } from '../models/JobSet';
-export { SoulId } from '../models/SoulId';
+export * from './types';  // Export v2-specific types including V2Response
 

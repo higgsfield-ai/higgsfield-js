@@ -9,9 +9,10 @@ import {
   ValidationError,
   CredentialsMissedError,
   BrowserNotSupportedError,
+  TimeoutError,
 } from '../errors';
-import { JobSet } from '../models/JobSet';
 import { retryWithBackoff } from '../utils/retry';
+import { V2Response } from './types';
 
 export interface V2ClientConfig extends Omit<ClientConfig, 'apiKey' | 'apiSecret'> {
   credentials?: string; // Single field containing "KEY_ID:KEY_SECRET" format
@@ -32,7 +33,7 @@ export interface HiggsfieldClient {
   subscribe<TEndpoint extends string>(
     endpoint: TEndpoint,
     options: SubscribeOptions<any>
-  ): Promise<JobSet>;
+  ): Promise<V2Response>;
 
   configure(config: V2ClientConfig): void;
 }
@@ -172,6 +173,45 @@ function initializeClient(config?: V2ClientConfig): {
   return { config: cfg, client: axiosClient, credentials: creds };
 }
 
+async function pollV2Request(
+  client: AxiosInstance,
+  config: Config,
+  requestId: string
+): Promise<V2Response> {
+  const startTime = Date.now();
+  const pollingUrl = `/requests/${requestId}/status`;
+
+  while (true) {
+    if (Date.now() - startTime > config.maxPollTime) {
+      throw new TimeoutError(
+        `Polling exceeded maximum time of ${config.maxPollTime}ms`
+      );
+    }
+
+    try {
+      const response = await client.get<V2Response>(pollingUrl);
+      const v2Response = response.data;
+
+      // Check if polling should stop
+      if (
+        v2Response.status === 'completed' ||
+        v2Response.status === 'nsfw' ||
+        v2Response.status === 'failed'
+      ) {
+        return v2Response;
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) {
+        // Server error, continue polling
+      } else {
+        throw error;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, config.pollInterval));
+  }
+}
+
 export function createHiggsfieldClient(
   config?: V2ClientConfig,
   _options?: {
@@ -192,7 +232,7 @@ export function createHiggsfieldClient(
     async subscribe<TEndpoint extends string>(
       endpoint: TEndpoint,
       options: SubscribeOptions<any>
-    ): Promise<JobSet> {
+    ): Promise<V2Response> {
       // Ensure client is initialized with credentials
       if (
         !globalClient ||
@@ -240,7 +280,7 @@ export function createHiggsfieldClient(
 
       const response = await retryWithBackoff(
         () => {
-          return globalClient!.post(formattedEndpoint, requestBody);
+          return globalClient!.post<V2Response>(formattedEndpoint, requestBody);
         },
         {
           maxRetries: globalConfig.maxRetries,
@@ -249,26 +289,14 @@ export function createHiggsfieldClient(
         }
       );
 
-      // Transform v2 API response format to JobSet format
-      const v2Response = response.data;
-      const jobSetData = {
-        id: v2Response.request_id || v2Response.id,
-        jobs: v2Response.jobs || [
-          {
-            id: v2Response.request_id || v2Response.id || '',
-            status: v2Response.status || 'queued',
-            results: v2Response.results || null,
-          },
-        ],
-      };
+      let v2Response: V2Response = response.data;
 
-      const jobSet = new JobSet(jobSetData);
-
-      if (withPolling) {
-        await jobSet.pollV2(globalClient, globalConfig);
+      // Poll for completion if requested
+      if (withPolling && v2Response.request_id) {
+        v2Response = await pollV2Request(globalClient, globalConfig, v2Response.request_id);
       }
 
-      return jobSet;
+      return v2Response;
     },
 
     configure(config: V2ClientConfig): void {

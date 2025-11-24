@@ -18,3 +18,5 @@ examples/
 *.js.map
 *.d.ts.map
 .test-v2.ts
+.env
+test-*.ts

@@ -73,3 +73,23 @@ export interface ModelSchemasResponse {
   models: ModelSchema[];
 }
 
+// V2 API Response Types
+export type V2RequestStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'nsfw';
+
+export interface V2Image {
+  url: string;
+}
+
+export interface V2Video {
+  url: string;
+}
+
+export interface V2Response {
+  status: V2RequestStatus;
+  request_id: string;
+  status_url: string;
+  cancel_url: string;
+  images?: V2Image[];
+  video?: V2Video;
+}
+
