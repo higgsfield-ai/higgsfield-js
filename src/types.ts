@@ -30,6 +30,7 @@ export type Results = Record<ResultKey, Result>;
 export interface Job {
   id: string;
   status: string;
+  error?: string;
   results?: Results | null;
 }
 

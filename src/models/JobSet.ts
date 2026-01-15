@@ -131,12 +131,14 @@ export class JobSet {
         if (this.jobs.length > 0) {
           this.jobs[0].status = status;
           this.jobs[0].results = results;
+          this.jobs[0].error = v2Response.error;
         } else {
           // Create a job if none exists
           this.jobs = [{
             id: v2Response.request_id || this.id,
             status: status,
-            results: results
+            results: results,
+            error: v2Response.error
           }];
         }
 
