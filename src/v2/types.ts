@@ -87,9 +87,9 @@ export interface V2Video {
 export interface V2Response {
   status: V2RequestStatus;
   request_id: string;
+  error?: string;
   status_url: string;
   cancel_url: string;
   images?: V2Image[];
   video?: V2Video;
 }
-
