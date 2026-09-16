@@ -196,7 +196,8 @@ async function pollV2Request(
       if (
         v2Response.status === 'completed' ||
         v2Response.status === 'nsfw' ||
-        v2Response.status === 'failed'
+        v2Response.status === 'failed' ||
+        v2Response.status === 'canceled'
       ) {
         return v2Response;
       }
