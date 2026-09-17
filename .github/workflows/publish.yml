@@ -6,7 +6,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    runs-on: arc-runners-backend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
