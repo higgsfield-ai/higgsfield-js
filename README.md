@@ -265,6 +265,57 @@ const jobSet: JobSet = await client.subscribe('flux-pro/kontext/max/text-to-imag
 
 ---
 
+## Agent API (V2 preview)
+
+Agent API support is available in this development branch through
+`@higgsfield/client/v2`. A published package version with this feature has not
+been verified. Your API account must have Agent API access enabled.
+
+```typescript
+import { readFile } from 'node:fs/promises';
+import { createHiggsfieldClient } from '@higgsfield/client/v2';
+
+const client = createHiggsfieldClient({
+  credentials: process.env.HF_KEY,
+});
+const session = await client.agents.sessions.create();
+const result = await client.agents.sessions.run(
+  session.session_id,
+  'Generate an image of an alpine lake. Reply with the image URL.',
+  { onQuestion: () => 'Photorealistic style.', timeout: 30 * 60 * 1000 }
+);
+console.log(result.status, result.text, result.assetUrls);
+
+const imageBytes = await readFile('photo.jpeg');
+const url = await client.agents.media.upload(imageBytes, 'jpeg', 'image');
+await client.agents.sessions.run(session.session_id, `Animate this image: ${url}`);
+```
+
+The configured singleton also supports `higgsfield.agents` after
+`config({ credentials: 'key-id:key-secret' })`. Explicit client instances keep
+credentials separate; `client.configure()` updates only that instance, while
+module-level `config()` updates the shared default client.
+
+`run()` sends a message and polls with backoff from 2 to 10 seconds. Its `timeout`
+is in **milliseconds**, defaulting to 30 minutes. `AgentTimeoutError` stops the
+local wait while the server-side turn continues. Use `sessions.messages()` or
+`sessions.interrupt()` to follow up. Without `onQuestion`, an agent question
+returns `awaiting_input`; the callback can return a string or a promise of one.
+
+For manual control, use `sessions.send(sessionId, content)`,
+`sessions.messages(sessionId, afterMessageId)`, and `sessions.interrupt(sessionId)`.
+`media.upload(bytes, extension, type)` performs a presigned upload and returns
+the media URL only after the server confirms `uploaded`. API credentials are
+not passed to the storage upload.
+
+Agent requests default to `https://api.higgsfield.ai`; set `agentBaseURL` to
+change that host. They use the V2 `Authorization: Key ...` header, timeout and
+custom headers. Agent errors include `AgentAccessDeniedError` (403),
+`SessionBusyError` (409), `NotEnoughCreditsError` (402), and `AgentBackendError`
+(5xx). Billable messages are not automatically retried.
+
+---
+
 ## V1 Client (Deprecated)
 
 > **⚠️ Deprecated:** The v1 client is deprecated. Please use the [V2 Client](#v2-client-recommended) for new projects. The v1 client will continue to work but will not receive new features or updates.

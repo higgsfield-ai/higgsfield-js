@@ -13,6 +13,7 @@ import {
 } from '../errors';
 import { retryWithBackoff } from '../utils/retry';
 import { V2Response } from './types';
+import { AgentsResource } from '../agents/resources';
 
 export interface V2ClientConfig extends Omit<ClientConfig, 'apiKey' | 'apiSecret'> {
   credentials?: string; // Single field containing "KEY_ID:KEY_SECRET" format
@@ -30,6 +31,8 @@ interface SubscribeOptions<TInput = any> {
 }
 
 export interface HiggsfieldClient {
+  readonly agents: AgentsResource;
+
   subscribe<TEndpoint extends string>(
     endpoint: TEndpoint,
     options: SubscribeOptions<any>
@@ -38,9 +41,16 @@ export interface HiggsfieldClient {
   configure(config: V2ClientConfig): void;
 }
 
-let globalConfig: Config | undefined;
-let globalClient: AxiosInstance | undefined;
-let globalCredentials: Credentials | undefined;
+interface ClientState {
+  config?: Config;
+  client?: AxiosInstance;
+  credentials?: Credentials;
+  agents?: AgentsResource;
+}
+
+// Only the unconfigured default client follows module-level config().
+// Explicit client instances keep their credentials and cached resources isolated.
+const globalState: ClientState = {};
 
 function checkBrowserEnvironment(): void {
   // Check if we're in a browser environment
@@ -219,49 +229,33 @@ export function createHiggsfieldClient(
     loadSchemasOnInit?: boolean; // Deprecated - kept for backward compatibility
   }
 ): HiggsfieldClient {
-  // Store config for lazy initialization
-  // Only initialize if config is provided, otherwise wait for config() call or first use
-  if (config && (!globalConfig || !globalClient)) {
-    const { config: cfg, client, credentials } = initializeClient(config);
-    globalConfig = cfg;
-    globalClient = client;
-    globalCredentials = credentials;
+  const state: ClientState = config ? initializeClient(config) : globalState;
+
+  function ensureInitialized(): void {
+    checkBrowserEnvironment();
+    if (!state.client || !state.credentials?.apiKey || !state.credentials?.apiSecret) {
+      const initialized = initializeClient(state.config);
+      if (!initialized.credentials.apiKey || !initialized.credentials.apiSecret) {
+        throw new CredentialsMissedError();
+      }
+      Object.assign(state, initialized, { agents: undefined });
+    }
   }
 
   return {
+    get agents(): AgentsResource {
+      ensureInitialized();
+      state.agents ??= new AgentsResource(state.credentials!, state.config!);
+      return state.agents;
+    },
+
     async subscribe<TEndpoint extends string>(
       endpoint: TEndpoint,
       options: SubscribeOptions<any>
     ): Promise<V2Response> {
-      // Ensure client is initialized with credentials
-      if (
-        !globalClient ||
-        !globalCredentials ||
-        !globalCredentials.apiKey ||
-        !globalCredentials.apiSecret
-      ) {
-        try {
-          const envCreds = fetchCredentials();
-          if (envCreds.apiKey && envCreds.apiSecret) {
-            const {
-              config: cfg,
-              client,
-              credentials,
-            } = initializeClient({ credentials: `${envCreds.apiKey}:${envCreds.apiSecret}` });
-            globalConfig = cfg;
-            globalClient = client;
-            globalCredentials = credentials;
-          } else {
-            throw new CredentialsMissedError();
-          }
-        } catch (error) {
-          throw new CredentialsMissedError();
-        }
-      }
-
-      if (!globalClient || !globalConfig) {
-        throw new CredentialsMissedError();
-      }
+      ensureInitialized();
+      const client = state.client!;
+      const clientConfig = state.config!;
 
       const { input, webhook, withPolling = true } = options;
 
@@ -280,12 +274,12 @@ export function createHiggsfieldClient(
 
       const response = await retryWithBackoff(
         () => {
-          return globalClient!.post<V2Response>(formattedEndpoint, requestBody);
+          return client.post<V2Response>(formattedEndpoint, requestBody);
         },
         {
-          maxRetries: globalConfig.maxRetries,
-          backoff: globalConfig.retryBackoff,
-          maxBackoff: globalConfig.retryMaxBackoff,
+          maxRetries: clientConfig.maxRetries,
+          backoff: clientConfig.retryBackoff,
+          maxBackoff: clientConfig.retryMaxBackoff,
         }
       );
 
@@ -293,7 +287,7 @@ export function createHiggsfieldClient(
 
       // Poll for completion if requested
       if (withPolling && v2Response.request_id) {
-        v2Response = await pollV2Request(globalClient, globalConfig, v2Response.request_id);
+        v2Response = await pollV2Request(client, clientConfig, v2Response.request_id);
       }
 
       return v2Response;
@@ -303,33 +297,18 @@ export function createHiggsfieldClient(
       // Check if running in browser - not allowed
       checkBrowserEnvironment();
 
-      const { config: cfg, client, credentials } = initializeClient(config);
-      globalConfig = cfg;
-      globalClient = client;
-      globalCredentials = credentials;
+      Object.assign(state, initializeClient(config), { agents: undefined });
     },
   };
 }
 
 export function configure(config: V2ClientConfig): void {
-  // Check if running in browser - not allowed
-  checkBrowserEnvironment();
-
-  if (!globalConfig || !globalClient) {
-    const { config: cfg, client, credentials } = initializeClient(config);
-    globalConfig = cfg;
-    globalClient = client;
-    globalCredentials = credentials;
-  } else {
-    const { config: cfg, client, credentials } = initializeClient(config);
-    globalConfig = cfg;
-    globalClient = client;
-    globalCredentials = credentials;
-  }
+  Object.assign(globalState, initializeClient(config), { agents: undefined });
 }
 
 export function reset(): void {
-  globalConfig = undefined as any;
-  globalClient = undefined as any;
-  globalCredentials = undefined as any;
+  globalState.config = undefined;
+  globalState.client = undefined;
+  globalState.credentials = undefined;
+  globalState.agents = undefined;
 }
