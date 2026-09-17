@@ -23,7 +23,7 @@ export class Config implements ClientConfig {
   pollInterval: number = 2000; // ms
   maxPollTime: number = 300000; // ms
   headers: Record<string, string> = {};
-  baseURL: string = 'https://platform.higgsfield.ai';
+  baseURL: string = 'https://api.higgsfield.ai';
   agentBaseURL?: string;
 
   constructor(config?: Partial<ClientConfig>) {

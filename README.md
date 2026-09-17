@@ -186,8 +186,8 @@ The v2 client automatically polls `/requests/{request_id}/status` when `withPoll
 {
   "status": "completed",
   "request_id": "d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff",
-  "status_url": "https://platform.higgsfield.ai/requests/d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff/status",
-  "cancel_url": "https://platform.higgsfield.ai/requests/d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff/cancel",
+  "status_url": "https://api.higgsfield.ai/requests/d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff/status",
+  "cancel_url": "https://api.higgsfield.ai/requests/d7e6c0f3-6699-4f6c-bb45-2ad7fd9158ff/cancel",
   "images": [{ "url": "https://image.url/example.jpg" }],
   "video": { "url": "https://video.url/example.mp4" }
 }
@@ -229,7 +229,7 @@ const client = createHiggsfieldClient({
   credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET',
   
   // Optional configuration
-  baseURL: 'https://platform.higgsfield.ai', // Default
+  baseURL: 'https://api.higgsfield.ai', // Default
   timeout: 120000, // 2 minutes default
   maxRetries: 3,
   retryBackoff: 1000,
@@ -491,7 +491,7 @@ const client = new HiggsfieldClient({
   apiSecret: 'YOUR_API_SECRET',
   
   // API Configuration
-  baseURL: 'https://platform.higgsfield.ai', // Default
+  baseURL: 'https://api.higgsfield.ai', // Default
   timeout: 120000, // 2 minutes default
   
   // Retry Configuration
