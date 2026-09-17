@@ -14,6 +14,18 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
       
+      - name: Verify release version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node <<'NODE'
+          const version = require('./package.json').version;
+          const tag = process.env.RELEASE_TAG.replace(/^v/, '');
+          if (tag !== version) {
+            console.error(`Release tag ${process.env.RELEASE_TAG} does not match package version ${version}`);
+            process.exit(1);
+          }
+          NODE
       - run: npm ci
       - run: npm run build
       
