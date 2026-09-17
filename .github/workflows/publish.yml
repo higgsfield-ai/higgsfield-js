@@ -12,7 +12,7 @@ on:
 
 jobs:
   publish:
-    runs-on: ci-standard
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
