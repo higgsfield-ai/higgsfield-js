@@ -12,7 +12,7 @@ on:
 
 jobs:
   publish:
-    runs-on: arc-runners-backend
+    runs-on: ci-standard
     steps:
       - uses: actions/checkout@v4
         with:
