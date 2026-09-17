@@ -3,18 +3,30 @@ name: Publish to NPM
 on:
   release:
     types: [created]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish
+        required: true
+        type: string
 
 jobs:
   publish:
     runs-on: arc-runners-backend
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag || github.event.release.tag_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
       
       - run: npm ci
+      - name: Set package version from release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: npm version "${RELEASE_TAG#v}" --no-git-tag-version --ignore-scripts --allow-same-version
       - run: npm run build
       
       - run: npm publish --access public
