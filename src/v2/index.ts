@@ -1,4 +1,9 @@
-import { createHiggsfieldClient, configure as configureClient, V2ClientConfig } from './client';
+import {
+  createHiggsfieldClient,
+  configure as configureClient,
+  V2ClientConfig,
+  HiggsfieldClient,
+} from './client';
 
 // Create client instance
 export const higgsfield = createHiggsfieldClient(undefined);
@@ -10,11 +15,19 @@ export function config(config: V2ClientConfig): void {
 }
 
 // Export types and configure function
-export { configureClient as configure, V2ClientConfig, createHiggsfieldClient };
+export { configureClient as configure, V2ClientConfig, HiggsfieldClient, createHiggsfieldClient };
 
 // Re-export types and helpers
 export * from '../types';
 export * from '../errors';
 export * from '../helpers';
-export * from './types';  // Export v2-specific types including V2Response
+export * from './types'; // Export v2-specific types including V2Response
 
+export { AgentsResource, AGENT_API_URL } from '../agents/resources';
+export * from '../agents/types';
+export {
+  AgentAccessDeniedError,
+  AgentBackendError,
+  AgentTimeoutError,
+  SessionBusyError,
+} from '../agents/errors';

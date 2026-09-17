@@ -9,6 +9,8 @@ export interface ClientConfig {
   maxPollTime?: number;
   headers?: Record<string, string>;
   baseURL?: string;
+  /** Agent API host; defaults to https://api.higgsfield.ai. */
+  agentBaseURL?: string;
 }
 
 export class Config implements ClientConfig {
@@ -22,6 +24,7 @@ export class Config implements ClientConfig {
   maxPollTime: number = 300000; // ms
   headers: Record<string, string> = {};
   baseURL: string = 'https://platform.higgsfield.ai';
+  agentBaseURL?: string;
 
   constructor(config?: Partial<ClientConfig>) {
     if (config) {
