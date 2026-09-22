@@ -9,8 +9,10 @@ import {
 } from '../errors';
 import { retryWithBackoff } from '../utils/retry';
 import { errorFromResponse, ErrorDetail } from '../utils/errors';
-import { V2Response } from './types';
+import { V2Response, V2RequestStatus } from './types';
 import { AgentsResource } from '../agents/resources';
+
+const TERMINAL_STATUSES: V2RequestStatus[] = ['completed', 'nsfw', 'failed'];
 
 export interface V2ClientConfig extends Omit<ClientConfig, 'apiKey' | 'apiSecret'> {
   credentials?: string; // Single field containing "KEY_ID:KEY_SECRET" format
@@ -57,6 +59,14 @@ function checkBrowserEnvironment(): void {
   }
 }
 
+function extractCredentials(credentials: string): { apiKey: string; apiSecret: string } {
+  const parts = credentials.split(':');
+  if (parts.length !== 2) {
+    throw new BadInputError('Credentials must be in format "KEY_ID:KEY_SECRET"');
+  }
+  return { apiKey: parts[0], apiSecret: parts[1] };
+}
+
 function initializeClient(config?: V2ClientConfig): {
   config: Config;
   client: AxiosInstance;
@@ -70,18 +80,10 @@ function initializeClient(config?: V2ClientConfig): {
   let apiSecret: string | undefined;
 
   if (config?.credentials) {
-    // Single credentials field in format "KEY_ID:KEY_SECRET"
-    const parts = config.credentials.split(':');
-    if (parts.length === 2) {
-      apiKey = parts[0];
-      apiSecret = parts[1];
-    } else {
-      throw new BadInputError('Credentials must be in format "KEY_ID:KEY_SECRET"');
-    }
+    ({ apiKey, apiSecret } = extractCredentials(config.credentials));
   } else if (config?.apiKey && config?.apiSecret) {
     // Backward compatibility: separate fields
-    apiKey = config.apiKey;
-    apiSecret = config.apiSecret;
+    ({ apiKey, apiSecret } = config);
   }
 
   // Create config without credentials fields for Config class
@@ -180,11 +182,7 @@ async function pollV2Request(
       const v2Response = response.data;
 
       // Check if polling should stop
-      if (
-        v2Response.status === 'completed' ||
-        v2Response.status === 'nsfw' ||
-        v2Response.status === 'failed'
-      ) {
+      if (TERMINAL_STATUSES.includes(v2Response.status)) {
         return v2Response;
       }
     } catch (error) {
