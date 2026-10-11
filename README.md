@@ -608,6 +608,23 @@ for (const job of jobSet.jobs) {
 
 ---
 
+## Compatible backends
+
+`baseURL` accepts any origin that implements the Higgsfield API — useful for compatible providers, proxies, and test doubles.
+
+For example, [LivePair](https://livepairai.com) exposes a wire-compatible endpoint backed by its own pay-per-result model catalog:
+
+```typescript
+const client = createHiggsfieldClient({
+  credentials: 'key:lp_YOUR_KEY', // lp_ key goes in the secret slot
+  baseURL: 'https://livepairai.com/hf',
+});
+```
+
+Model paths map by surface (image-to-video → Wan 3.0, image/edit → Seedream). Coverage and limits: https://livepairai.com/docs/hf-compat
+
+---
+
 ## Support
 
 - Documentation: https://docs.higgsfield.ai
