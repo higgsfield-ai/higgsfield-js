@@ -19,7 +19,7 @@ jobs:
           ref: refs/tags/${{ inputs.tag || github.event.release.tag_name }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22.23.4'
           registry-url: 'https://registry.npmjs.org'
       
       - name: Verify release version
