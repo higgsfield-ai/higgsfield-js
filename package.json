@@ -56,6 +56,13 @@
   "engines": {
     "node": ">=14.0.0"
   },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "^22.23.4 || ^24.22.1 || >=26.12.1",
+      "onFail": "error"
+    }
+  },
   "dependencies": {
     "axios": "^1.6.5",
     "form-data": "^4.0.0"
