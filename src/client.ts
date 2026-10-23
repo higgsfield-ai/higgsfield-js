@@ -143,7 +143,8 @@ export class HiggsfieldClient {
     
     return {
       upload_url: response.data.upload_url,
-      public_url: response.data.public_url
+      public_url: response.data.public_url,
+      upload_headers: response.data.upload_headers
     };
   }
 
@@ -151,10 +152,12 @@ export class HiggsfieldClient {
    * Upload data to Higgsfield CDN
    */
   async upload(data: Buffer | Uint8Array, contentType: string): Promise<string> {
-    const { upload_url, public_url } = await this.getUploadLink(contentType);
+    const { upload_url, public_url, upload_headers } = await this.getUploadLink(contentType);
 
+    // The presigned URL is signed over these headers (e.g. Content-Type and
+    // x-amz-tagging), so the PUT must send exactly what the API returned.
     await axios.put(upload_url, data, {
-      headers: { 'Content-Type': contentType }
+      headers: upload_headers ?? { 'Content-Type': contentType }
     });
 
     return public_url;
