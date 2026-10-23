@@ -13,8 +13,8 @@ npm install @higgsfield/client
 ## V2 Client (Recommended)
 
 The v2 client is the modern, recommended way to use the Higgsfield SDK. It features:
-- Single `credentials` field (`KEY_ID:KEY_SECRET` format)
-- `Authorization: Key KEY_ID:KEY_SECRET` authentication header
+- Single `credentials` field (`KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55` format)
+- `Authorization: Key KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55` authentication header
 - Automatic obfuscated `User-Agent: higgsfield-server-js/2.0` header
 - Server-side only (browser usage blocked for security)
 - Simplified API with `subscribe()` method
@@ -55,7 +55,7 @@ The v2 client supports multiple authentication methods:
 import { config } from '@higgsfield/client/v2';
 
 config({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+  credentials: 'YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 ```
 
@@ -63,7 +63,7 @@ config({
 ```typescript
 config({
   apiKey: 'YOUR_KEY_ID',
-  apiSecret: 'YOUR_KEY_SECRET'
+  apiSecret: '563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 ```
 
@@ -74,7 +74,7 @@ export HF_CREDENTIALS="YOUR_KEY_ID:YOUR_KEY_SECRET"
 
 # Or separate variables
 export HF_API_KEY="YOUR_KEY_ID"
-export HF_API_SECRET="YOUR_KEY_SECRET"
+export HF_API_SECRET="563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55"
 ```
 
 ```typescript
@@ -88,7 +88,7 @@ import { higgsfield } from '@higgsfield/client/v2';
 import { createHiggsfieldClient } from '@higgsfield/client/v2';
 
 const client = createHiggsfieldClient({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+  credentials: 'YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 ```
 
@@ -132,7 +132,7 @@ const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', 
 import { higgsfield, config } from '@higgsfield/client/v2';
 
 config({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+  credentials: 'YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 
 const jobSet = await higgsfield.subscribe('flux-pro/kontext/max/text-to-image', {
@@ -226,7 +226,7 @@ for (const job of jobSet.jobs) {
 import { createHiggsfieldClient } from '@higgsfield/client/v2';
 
 const client = createHiggsfieldClient({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET',
+  credentials: 'YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55',
   
   // Optional configuration
   baseURL: 'https://api.higgsfield.ai', // Default
@@ -252,7 +252,7 @@ import {
 } from '@higgsfield/client/v2';
 
 const client: HiggsfieldClient = createHiggsfieldClient({
-  credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET'
+  credentials: 'YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 
 const jobSet: JobSet = await client.subscribe('flux-pro/kontext/max/text-to-image', {
@@ -331,7 +331,7 @@ import { InputImage, SoulQuality, SoulSize, BatchSize, DoPModel } from '@higgsfi
 // Initialize the client
 const client = new HiggsfieldClient({
   apiKey: 'YOUR_API_KEY',
-  apiSecret: 'YOUR_API_SECRET'
+  apiSecret: '563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 ```
 
@@ -341,14 +341,14 @@ const client = new HiggsfieldClient({
 ```typescript
 const client = new HiggsfieldClient({
   apiKey: 'YOUR_API_KEY',
-  apiSecret: 'YOUR_API_SECRET'
+  apiSecret: '563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55'
 });
 ```
 
 **Option 2: Use environment variables**
 ```bash
 export HF_API_KEY="YOUR_API_KEY"
-export HF_SECRET="YOUR_API_SECRET"
+export HF_SECRET="563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55"
 ```
 
 ```typescript
@@ -488,7 +488,7 @@ if (newSoulId.isCompleted) {
 const client = new HiggsfieldClient({
   // Authentication
   apiKey: 'YOUR_API_KEY',
-  apiSecret: 'YOUR_API_SECRET',
+  apiSecret: '563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55',
   
   // API Configuration
   baseURL: 'https://api.higgsfield.ai', // Default
@@ -584,7 +584,7 @@ for (const job of jobSet.jobs) {
 3. **Handle rate limits**: Configure exponential backoff for retries:
    ```typescript
    const client = createHiggsfieldClient({
-     credentials: 'YOUR_KEY_ID:YOUR_KEY_SECRET',
+     credentials: 'YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55',
      maxRetries: 5,
      retryBackoff: 2000,
      retryMaxBackoff: 30000
@@ -603,7 +603,7 @@ for (const job of jobSet.jobs) {
 
 6. **Environment variables**: Store credentials in environment variables for security:
    ```bash
-   export HF_CREDENTIALS="YOUR_KEY_ID:YOUR_KEY_SECRET"
+   export HF_CREDENTIALS="YOUR_KEY_ID:563f974d-802c-4998-8376-c5dc7b394d46:a83b2927fac8d102e7e26258062ba1d3cfe1d1b730aed3978527a700ca1abd55"
    ```
 
 ---
