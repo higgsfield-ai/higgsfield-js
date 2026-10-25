@@ -5,12 +5,37 @@ export interface RetryConfig {
   backoff: number;
   maxBackoff: number;
   retryableErrors?: string[];
+  /**
+   * Set to false for requests that create a job (and charge credits).
+   * Such requests are only resent when they certainly never reached the server.
+   * Defaults to true.
+   */
+  idempotent?: boolean;
 }
 
-export async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
-  config: RetryConfig
-): Promise<T> {
+// The connection was never established, so the server cannot have seen the request.
+const NOT_SENT_CODES = new Set(['ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED']);
+
+function isRetryable(error: unknown, idempotent: boolean): boolean {
+  if (!(error instanceof AxiosError)) {
+    return idempotent;
+  }
+  if (error.code && NOT_SENT_CODES.has(error.code)) {
+    return true;
+  }
+  if (!idempotent) {
+    // Timeouts, resets and 5xx are ambiguous: the job may already exist.
+    return false;
+  }
+  return (
+    error.code === 'ECONNRESET' ||
+    error.code === 'ETIMEDOUT' ||
+    (error.response !== undefined && error.response.status >= 500)
+  );
+}
+
+export async function retryWithBackoff<T>(fn: () => Promise<T>, config: RetryConfig): Promise<T> {
+  const idempotent = config.idempotent ?? true;
   let lastError: Error | undefined;
 
   for (let attempt = 0; attempt <= config.maxRetries; attempt++) {
@@ -19,21 +44,8 @@ export async function retryWithBackoff<T>(
     } catch (error) {
       lastError = error as Error;
 
-      if (attempt === config.maxRetries) {
+      if (attempt === config.maxRetries || !isRetryable(error, idempotent)) {
         throw lastError;
-      }
-
-      // Check if error is retryable
-      if (error instanceof AxiosError) {
-        const isRetryable = 
-          error.code === 'ECONNRESET' ||
-          error.code === 'ETIMEDOUT' ||
-          error.code === 'ENOTFOUND' ||
-          (error.response && error.response.status >= 500);
-
-        if (!isRetryable) {
-          throw error;
-        }
       }
 
       const delay = Math.min(
@@ -41,7 +53,7 @@ export async function retryWithBackoff<T>(
         config.maxBackoff
       );
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
