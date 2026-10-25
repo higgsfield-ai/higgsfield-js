@@ -5,6 +5,12 @@ export interface ClientConfig {
   maxRetries?: number;
   retryBackoff?: number;
   retryMaxBackoff?: number;
+  /**
+   * Resend job-creating requests after timeouts, connection resets and server errors.
+   * Off by default: the job may already have been created and charged, so a resend can
+   * create and charge a second one. Requests that never reached the server are always retried.
+   */
+  retrySubmissions?: boolean;
   pollInterval?: number;
   maxPollTime?: number;
   headers?: Record<string, string>;
@@ -20,6 +26,7 @@ export class Config implements ClientConfig {
   maxRetries: number = 3;
   retryBackoff: number = 1000; // ms
   retryMaxBackoff: number = 60000; // ms
+  retrySubmissions: boolean = false;
   pollInterval: number = 2000; // ms
   maxPollTime: number = 300000; // ms
   headers: Record<string, string> = {};

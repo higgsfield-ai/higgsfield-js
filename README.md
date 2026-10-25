@@ -234,6 +234,7 @@ const client = createHiggsfieldClient({
   maxRetries: 3,
   retryBackoff: 1000,
   retryMaxBackoff: 60000,
+  retrySubmissions: false, // Default; see "Retries" below
   pollInterval: 2000, // Check every 2 seconds
   maxPollTime: 300000, // Timeout after 5 minutes
   headers: {
@@ -241,6 +242,15 @@ const client = createHiggsfieldClient({
   }
 });
 ```
+
+#### Retries
+
+Status polling and other read requests are retried on timeouts, connection resets and 5xx.
+
+Requests that create a job (`subscribe`, `generate`) are only retried when the request never reached
+the server (DNS failure, connection refused). After a timeout, a connection reset or an error response
+the job may already exist and be charged, so the error is returned instead of sending the job again.
+Set `retrySubmissions: true` to restore the previous behaviour.
 
 ### TypeScript Support
 
