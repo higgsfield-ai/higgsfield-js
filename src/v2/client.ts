@@ -2,18 +2,17 @@ import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Config, ClientConfig } from '../config';
 import { fetchCredentials, Credentials } from '../auth';
 import {
-  APIError,
-  AuthenticationError,
   BadInputError,
-  NotEnoughCreditsError,
-  ValidationError,
   CredentialsMissedError,
   BrowserNotSupportedError,
   TimeoutError,
 } from '../errors';
 import { retryWithBackoff } from '../utils/retry';
-import { V2Response } from './types';
+import { errorFromResponse, ErrorDetail } from '../utils/errors';
+import { V2Response, V2RequestStatus } from './types';
 import { AgentsResource } from '../agents/resources';
+
+const TERMINAL_STATUSES: V2RequestStatus[] = ['completed', 'nsfw', 'failed'];
 
 export interface V2ClientConfig extends Omit<ClientConfig, 'apiKey' | 'apiSecret'> {
   credentials?: string; // Single field containing "KEY_ID:KEY_SECRET" format
@@ -60,6 +59,14 @@ function checkBrowserEnvironment(): void {
   }
 }
 
+function extractCredentials(credentials: string): { apiKey: string; apiSecret: string } {
+  const parts = credentials.split(':');
+  if (parts.length !== 2) {
+    throw new BadInputError('Credentials must be in format "KEY_ID:KEY_SECRET"');
+  }
+  return { apiKey: parts[0], apiSecret: parts[1] };
+}
+
 function initializeClient(config?: V2ClientConfig): {
   config: Config;
   client: AxiosInstance;
@@ -73,18 +80,10 @@ function initializeClient(config?: V2ClientConfig): {
   let apiSecret: string | undefined;
 
   if (config?.credentials) {
-    // Single credentials field in format "KEY_ID:KEY_SECRET"
-    const parts = config.credentials.split(':');
-    if (parts.length === 2) {
-      apiKey = parts[0];
-      apiSecret = parts[1];
-    } else {
-      throw new BadInputError('Credentials must be in format "KEY_ID:KEY_SECRET"');
-    }
+    ({ apiKey, apiSecret } = extractCredentials(config.credentials));
   } else if (config?.apiKey && config?.apiSecret) {
     // Backward compatibility: separate fields
-    apiKey = config.apiKey;
-    apiSecret = config.apiSecret;
+    ({ apiKey, apiSecret } = config);
   }
 
   // Create config without credentials fields for Config class
@@ -151,30 +150,10 @@ function initializeClient(config?: V2ClientConfig): {
     (response) => {
       return response;
     },
-    (
-      error: AxiosError<{
-        detail?:
-          | string
-          | Array<{
-              type: string;
-              loc: string[];
-              msg: string;
-              input?: any;
-              ctx?: Record<string, any>;
-            }>;
-      }>
-    ) => {
-      if (error.response?.status === 401) {
-        throw new AuthenticationError('Invalid API credentials');
-      } else if (error.response?.status === 403) {
-        throw new NotEnoughCreditsError();
-      } else if (error.response?.status === 422) {
-        throw new ValidationError(error.response?.data?.detail);
-      } else if (error.response?.status === 400) {
-        throw new BadInputError(error.response?.data?.detail);
-      }
-      if (error.response) {
-        throw new APIError(error.message, error.response.status, error.response.data);
+    (error: AxiosError<{ detail?: ErrorDetail }>) => {
+      const { response } = error;
+      if (response) {
+        throw errorFromResponse(response.status, error.message, response.data?.detail, response.data);
       }
       throw error;
     }
@@ -203,11 +182,7 @@ async function pollV2Request(
       const v2Response = response.data;
 
       // Check if polling should stop
-      if (
-        v2Response.status === 'completed' ||
-        v2Response.status === 'nsfw' ||
-        v2Response.status === 'failed'
-      ) {
+      if (TERMINAL_STATUSES.includes(v2Response.status)) {
         return v2Response;
       }
     } catch (error) {

@@ -1,3 +1,5 @@
+export const AWAITING_INPUT = 'awaiting_input' as const;
+
 export type SessionStatus = 'idle' | 'processing' | 'awaiting_input' | 'terminated';
 export type MessageStatus = 'processing' | 'completed' | 'failed';
 export type MediaType = 'image' | 'video' | 'audio' | 'file';

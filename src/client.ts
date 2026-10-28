@@ -1,11 +1,11 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Config, ClientConfig } from './config';
 import { fetchCredentials, Credentials } from './auth';
-import { APIError, AuthenticationError, BadInputError, NotEnoughCreditsError, ValidationError } from './errors';
 import { GenerateParams, UploadResponse, WebhookPayload, SoulStyle, Motion, SoulIdCreateData, SoulIdListResponse } from './types';
 import { JobSet } from './models/JobSet';
 import { SoulId } from './models/SoulId';
 import { retryWithBackoff } from './utils/retry';
+import { errorFromResponse, ErrorDetail } from './utils/errors';
 
 export class HiggsfieldClient {
   private config: Config;
@@ -37,28 +37,10 @@ export class HiggsfieldClient {
 
     this.client.interceptors.response.use(
       response => response,
-      (error: AxiosError<{ detail?: string | Array<{
-        type: string;
-        loc: string[];
-        msg: string;
-        input?: any;
-        ctx?: Record<string, any>;
-      }> }>) => {
-        if (error.response?.status === 401) {
-          throw new AuthenticationError('Invalid API credentials');
-        } else if(error.response?.status === 403) {
-          throw new NotEnoughCreditsError
-        } else if(error.response?.status === 422) {
-          throw new ValidationError(error.response?.data?.detail)
-        } else if(error.response?.status === 400) {
-          throw new BadInputError(error.response?.data?.detail)
-        }
-        if (error.response) {
-          throw new APIError(
-            error.message,
-            error.response.status,
-            error.response.data
-          );
+      (error: AxiosError<{ detail?: ErrorDetail }>) => {
+        const { response } = error;
+        if (response) {
+          throw errorFromResponse(response.status, error.message, response.data?.detail, response.data);
         }
         throw error;
       }
