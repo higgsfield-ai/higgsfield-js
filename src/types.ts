@@ -66,6 +66,7 @@ export interface WebhookPayload {
 export interface UploadResponse {
   upload_url: string;
   public_url: string;
+  upload_headers?: Record<string, string>;
 }
 
 export interface SoulStyle {
