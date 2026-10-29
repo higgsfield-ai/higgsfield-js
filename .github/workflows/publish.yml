@@ -41,6 +41,6 @@ jobs:
         run: npm version "${RELEASE_TAG#v}" --no-git-tag-version --ignore-scripts --allow-same-version
       - run: npm run build
       
-      - run: npm publish --access public
+      - run: npm publish --access public --registry=https://registry.npmjs.org
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
