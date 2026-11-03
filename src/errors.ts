@@ -31,6 +31,14 @@ export class APIError extends HiggsfieldError {
   }
 }
 
+/**
+ * Returns true when a response interceptor has mapped a transient HTTP server
+ * failure to an SDK error. Polling can safely try the status endpoint again.
+ */
+export function isTransientServerError(error: unknown): boolean {
+  return error instanceof APIError && (error.statusCode ?? 0) >= 500;
+}
+
 export class TimeoutError extends HiggsfieldError {
   constructor(message: string) {
     super(message);

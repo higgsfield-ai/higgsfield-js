@@ -10,6 +10,7 @@ import {
   CredentialsMissedError,
   BrowserNotSupportedError,
   TimeoutError,
+  isTransientServerError,
 } from '../errors';
 import { retryWithBackoff } from '../utils/retry';
 import { V2Response } from './types';
@@ -211,7 +212,10 @@ async function pollV2Request(
         return v2Response;
       }
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) {
+      if (
+        (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) ||
+        isTransientServerError(error)
+      ) {
         // Server error, continue polling
       } else {
         throw error;
