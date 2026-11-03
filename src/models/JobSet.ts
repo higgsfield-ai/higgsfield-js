@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { Config } from '../config';
-import { TimeoutError } from '../errors';
+import { isTransientServerError, TimeoutError } from '../errors';
 import { JobStatus, Job, JobSetData, Results } from '../types';
 
 export class JobSet {
@@ -62,7 +62,10 @@ export class JobSet {
           break;
         }
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) {
+        if (
+          (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) ||
+          isTransientServerError(error)
+        ) {
           // Server error, continue polling
         } else {
           throw error;
@@ -145,7 +148,10 @@ export class JobSet {
           break;
         }
       } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) {
+        if (
+          (axios.isAxiosError(error) && error.response?.status && error.response.status >= 500) ||
+          isTransientServerError(error)
+        ) {
           // Server error, continue polling
         } else {
           throw error;
