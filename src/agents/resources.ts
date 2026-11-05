@@ -17,6 +17,7 @@ import {
 } from './errors';
 import {
   AgentSession,
+  AWAITING_INPUT,
   MediaType,
   MediaUploadSlot,
   RunOptions,
@@ -58,8 +59,8 @@ function turnOutcome(state: SessionState): TurnResult | null {
       return toTurnResult(m.status, m);
     }
   }
-  if (state.status === 'awaiting_input') {
-    return toTurnResult('awaiting_input', assistants[assistants.length - 1] ?? null);
+  if (state.status === AWAITING_INPUT) {
+    return toTurnResult(AWAITING_INPUT, assistants[assistants.length - 1] ?? null);
   }
   return null;
 }
@@ -123,7 +124,7 @@ export class Sessions {
       if (outcome === null) {
         continue;
       }
-      if (outcome.status === 'awaiting_input' && options.onQuestion) {
+      if (outcome.status === AWAITING_INPUT && options.onQuestion) {
         const answer = await options.onQuestion(outcome.text);
         messageId = await this.send(sessionId, answer);
         delay = POLL_INITIAL_MS;

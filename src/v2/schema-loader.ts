@@ -1,5 +1,15 @@
 import { ModelSchema } from './types';
 
+// Maps JSON Schema primitive types to their TypeScript-compatible constructors
+const JSON_SCHEMA_TYPE_MAP: Record<string, any> = {
+  string: String,
+  number: Number,
+  integer: Number,
+  boolean: Boolean,
+  array: Array,
+  object: Object,
+};
+
 /**
  * Converts backend JSON schema to TypeScript-compatible type map
  * This converts the JSON Schema format to a structure that can be used
@@ -16,19 +26,7 @@ export function createTypeMapFromSchemas(schemas: ModelSchema[]): Record<string,
     if (schema.inputSchema && schema.inputSchema.properties) {
       for (const [key, prop] of Object.entries(schema.inputSchema.properties)) {
         // Map JSON Schema types to TypeScript-compatible types
-        if (prop.type === 'string') {
-          inputType[key] = String;
-        } else if (prop.type === 'number' || prop.type === 'integer') {
-          inputType[key] = Number;
-        } else if (prop.type === 'boolean') {
-          inputType[key] = Boolean;
-        } else if (prop.type === 'array') {
-          inputType[key] = Array;
-        } else if (prop.type === 'object') {
-          inputType[key] = Object;
-        } else {
-          inputType[key] = prop;
-        }
+        inputType[key] = JSON_SCHEMA_TYPE_MAP[prop.type] ?? prop;
         
         // Handle enums
         if (prop.enum) {
