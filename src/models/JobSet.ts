@@ -141,7 +141,7 @@ export class JobSet {
         }
 
         // Check if polling should stop
-        if (status === 'completed' || status === 'nsfw' || status === 'failed') {
+        if (status === 'completed' || status === 'nsfw' || status === 'failed' || status === 'canceled') {
           break;
         }
       } catch (error) {
