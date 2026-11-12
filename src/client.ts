@@ -140,10 +140,11 @@ export class HiggsfieldClient {
     const response = await this.client.post('/files/generate-upload-url', {
       content_type: contentType
     });
-    
+
     return {
       upload_url: response.data.upload_url,
-      public_url: response.data.public_url
+      public_url: response.data.public_url,
+      upload_headers: response.data.upload_headers
     };
   }
 
@@ -151,10 +152,12 @@ export class HiggsfieldClient {
    * Upload data to Higgsfield CDN
    */
   async upload(data: Buffer | Uint8Array, contentType: string): Promise<string> {
-    const { upload_url, public_url } = await this.getUploadLink(contentType);
+    const { upload_url, public_url, upload_headers } = await this.getUploadLink(contentType);
 
+    // The presigned URL signs whatever headers the server put in upload_headers
+    // (e.g. x-amz-tagging) - sending only Content-Type mismatches that signature.
     await axios.put(upload_url, data, {
-      headers: { 'Content-Type': contentType }
+      headers: { 'Content-Type': contentType, ...upload_headers }
     });
 
     return public_url;
