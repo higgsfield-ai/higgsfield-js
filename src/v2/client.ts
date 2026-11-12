@@ -280,6 +280,7 @@ export function createHiggsfieldClient(
           maxRetries: clientConfig.maxRetries,
           backoff: clientConfig.retryBackoff,
           maxBackoff: clientConfig.retryMaxBackoff,
+          idempotent: clientConfig.retrySubmissions,
         }
       );
 

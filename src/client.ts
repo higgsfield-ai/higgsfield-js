@@ -88,7 +88,8 @@ export class HiggsfieldClient {
       {
         maxRetries: this.config.maxRetries,
         backoff: this.config.retryBackoff,
-        maxBackoff: this.config.retryMaxBackoff
+        maxBackoff: this.config.retryMaxBackoff,
+        idempotent: this.config.retrySubmissions
       }
     );
 
