@@ -66,6 +66,8 @@ export interface WebhookPayload {
 export interface UploadResponse {
   upload_url: string;
   public_url: string;
+  /** Headers the presigned upload URL was signed with; every one of them must be sent on the PUT. */
+  upload_headers?: Record<string, string>;
 }
 
 export interface SoulStyle {
